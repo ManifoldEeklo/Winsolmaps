@@ -100,7 +100,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
   .admin-order-row .admin-jump-btn{width:auto;padding:0 10px}
   .admin-modal{padding:16px}
   .admin-group-card{padding:10px}
-  .mobile-map-toggle{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:calc(10px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:900;background:rgba(10,16,23,.9);color:var(--text);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:0 16px;min-height:38px;font-weight:700;font-size:12.5px;box-shadow:0 8px 22px rgba(0,0,0,.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  .mobile-map-toggle{display:inline-flex;align-items:center;gap:6px;position:absolute;left:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:900;background:rgba(10,16,23,.9);color:var(--text);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:0 16px;min-height:38px;font-weight:700;font-size:12.5px;box-shadow:0 8px 22px rgba(0,0,0,.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
   #app.map-focus .sidebar{height:0;min-height:0;padding-top:0;padding-bottom:0;overflow:hidden;border-top:0}
   #app.map-focus .mapwrap{flex:1;min-height:0}
   .ps-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -1552,7 +1552,7 @@ function updatePartnerSummary(){
   const cardsEl=document.getElementById('psCards');
   const labelEl=document.getElementById('psToolbarLabel');
   if(!box||!cardsEl)return;
-  if(!selectedPartners.size){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('psCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';return}
+  if(!selectedPartners.size){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('psCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';alignMobileToggle();return}
   const MAX_INDIVIDUAL=5;
   const names=[...selectedPartners]; // Set preserves selection order; oldest first, newest last
   let html='';
@@ -1579,6 +1579,7 @@ function updatePartnerSummary(){
   }
   cardsEl.innerHTML=html;
   box.classList.remove('hidden');
+  alignMobileToggle();
 }
 (function(){
   const overlay=document.getElementById('adminOverlay');
@@ -1889,7 +1890,41 @@ const sat=document.getElementById('sat'),roadBtn=document.getElementById('road')
   collapseBtn.addEventListener('click',()=>{
     box.classList.toggle('collapsed');
     collapseBtn.textContent=box.classList.contains('collapsed')?'Show':'Hide';
+    alignMobileToggle();
   });
+})();
+
+// Keep the "Show map / Show list" toggle vertically aligned with the partner-info
+// box's "Hide" button (on its left, at the same height), regardless of how many
+// partner cards are currently shown — recalculated whenever the info box's
+// size/visibility changes.
+function alignMobileToggle(){
+  const toggleBtn=document.getElementById('mobileViewToggle');
+  const mapwrap=document.querySelector('.mapwrap');
+  const box=document.getElementById('partnerSummary');
+  const hideBtn=document.getElementById('psCollapseBtn');
+  if(!toggleBtn||!mapwrap)return;
+  if(!window.matchMedia('(max-width:800px)').matches){toggleBtn.style.top='';toggleBtn.style.bottom='';return}
+  if(!box||box.classList.contains('hidden')||!hideBtn){
+    toggleBtn.style.top='';
+    toggleBtn.style.bottom='calc(10px + env(safe-area-inset-bottom))';
+    return;
+  }
+  const wrapRect=mapwrap.getBoundingClientRect();
+  const hideRect=hideBtn.getBoundingClientRect();
+  const toggleHeight=toggleBtn.offsetHeight||38;
+  const top=(hideRect.top+hideRect.height/2-wrapRect.top)-toggleHeight/2;
+  toggleBtn.style.bottom='';
+  toggleBtn.style.top=Math.max(0,top)+'px';
+}
+(function(){
+  const box=document.getElementById('partnerSummary');
+  if(!box)return;
+  const mo=new MutationObserver(()=>alignMobileToggle());
+  mo.observe(box,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+  window.addEventListener('resize',alignMobileToggle);
+  window.addEventListener('orientationchange',()=>setTimeout(alignMobileToggle,250));
+  alignMobileToggle();
 })();
 
 // Kick off the real data load immediately (in parallel with the splash screen),
