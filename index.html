@@ -1457,7 +1457,7 @@ tabs.province.btn.onclick=()=>showPane('province');
 tabs.type.btn.onclick=()=>showPane('type');
 tabs.reference.btn.onclick=()=>showPane('reference');
 
-const map=L.map('map',{zoomControl:true,minZoom:7,maxZoom:17,preferCanvas:true}).setView([50.72,4.62],8);
+const map=L.map('map',{zoomControl:false,attributionControl:false,minZoom:7,maxZoom:17,preferCanvas:true}).setView([50.72,4.62],8);
 window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
@@ -1552,7 +1552,7 @@ function updatePartnerSummary(){
   const cardsEl=document.getElementById('psCards');
   const labelEl=document.getElementById('psToolbarLabel');
   if(!box||!cardsEl)return;
-  if(!selectedPartners.size){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('psCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';alignMobileToggle();return}
+  if(!selectedPartners.size){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('psCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';return}
   const MAX_INDIVIDUAL=5;
   const names=[...selectedPartners]; // Set preserves selection order; oldest first, newest last
   let html='';
@@ -1579,7 +1579,6 @@ function updatePartnerSummary(){
   }
   cardsEl.innerHTML=html;
   box.classList.remove('hidden');
-  alignMobileToggle();
 }
 (function(){
   const overlay=document.getElementById('adminOverlay');
@@ -1890,41 +1889,7 @@ const sat=document.getElementById('sat'),roadBtn=document.getElementById('road')
   collapseBtn.addEventListener('click',()=>{
     box.classList.toggle('collapsed');
     collapseBtn.textContent=box.classList.contains('collapsed')?'Show':'Hide';
-    alignMobileToggle();
   });
-})();
-
-// Keep the "Show map / Show list" toggle vertically aligned with the partner-info
-// box's "Hide" button (on its left, at the same height), regardless of how many
-// partner cards are currently shown — recalculated whenever the info box's
-// size/visibility changes.
-function alignMobileToggle(){
-  const toggleBtn=document.getElementById('mobileViewToggle');
-  const mapwrap=document.querySelector('.mapwrap');
-  const box=document.getElementById('partnerSummary');
-  const hideBtn=document.getElementById('psCollapseBtn');
-  if(!toggleBtn||!mapwrap)return;
-  if(!window.matchMedia('(max-width:800px)').matches){toggleBtn.style.top='';toggleBtn.style.bottom='';return}
-  if(!box||box.classList.contains('hidden')||!hideBtn){
-    toggleBtn.style.top='';
-    toggleBtn.style.bottom='calc(10px + env(safe-area-inset-bottom))';
-    return;
-  }
-  const wrapRect=mapwrap.getBoundingClientRect();
-  const hideRect=hideBtn.getBoundingClientRect();
-  const toggleHeight=toggleBtn.offsetHeight||32;
-  const top=(hideRect.top+hideRect.height/2-wrapRect.top)-toggleHeight/2;
-  toggleBtn.style.bottom='';
-  toggleBtn.style.top=Math.max(0,top)+'px';
-}
-(function(){
-  const box=document.getElementById('partnerSummary');
-  if(!box)return;
-  const mo=new MutationObserver(()=>alignMobileToggle());
-  mo.observe(box,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
-  window.addEventListener('resize',alignMobileToggle);
-  window.addEventListener('orientationchange',()=>setTimeout(alignMobileToggle,250));
-  alignMobileToggle();
 })();
 
 // Kick off the real data load immediately (in parallel with the splash screen),
