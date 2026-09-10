@@ -1488,12 +1488,11 @@ let partnerGroups=loadPartnerGroups();
 let canonicalMap=buildCanonicalMap(partnerGroups);
 function canonicalPartner(raw){return canonicalMap.get(raw)||raw}
 const detail=document.getElementById('detail'),legend=document.getElementById('legend'),provinceLegend=document.getElementById('provinceLegend'),typeLegend=document.getElementById('typeLegend'),status=document.getElementById('uploadStatus');
-let topo=null,d3=null;
 try{
-  const [d3mod,topoMod,belgiumTopo]=await Promise.all([import('https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm'),import('https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm'),fetch('https://cdn.jsdelivr.net/gh/bmesuere/belgium-topojson@master/belgium.json').then(r=>{if(!r.ok)throw new Error('Could not load Belgium municipality boundaries');return r.json()})]);
-  d3=d3mod;topo=topoMod;
-  const obj=belgiumTopo.objects.municipalities||belgiumTopo.objects[Object.keys(belgiumTopo.objects)[0]];
-  municipalities=topo.feature(belgiumTopo,obj).features;
+  const res=await fetch('./postcode-boundaries.geojson',{cache:'no-store'});
+  if(!res.ok)throw new Error(`Could not load postcode boundaries (${res.status})`);
+  const geo=await res.json();
+  municipalities=geo.features;
 }catch(err){
   console.error('Bootstrap failed (network/CDN unreachable, or opened as a local file):',err);
   window.dispatchEvent(new Event('winsol:error'));
@@ -1727,25 +1726,18 @@ rawPartners=[...new Set(rows.map(r=>r.partner))].sort();
 const partners=[...new Set(rows.map(r=>canonicalPartner(r.partner)))].sort();pIndex=new Map(partners.map((p,i)=>[p,i]));
 status.className='status';status.textContent='Building regions…';
 
-// Group rows by unique postcode first. This avoids doing an expensive point-in-polygon
-// calculation for every locality row in the source file.
+// Each feature in `municipalities` is now already a single postcode's shape
+// (built by dissolving Statbel statistical sectors by postal code), so we can
+// match rows to shapes directly by postcode — no geocoding/point-in-polygon
+// lookup needed any more.
 const byPc=new Map();
 for(const r of rows){if(!byPc.has(r.postcode))byPc.set(r.postcode,[]);byPc.get(r.postcode).push(r)}
 const pcs=[...byPc.entries()];
 const assigned=new Map(municipalities.map((f,i)=>[i,[]]));
-
-// Cache postcode -> municipality for future rebuilds/filter changes in this session.
-window.__pcMunicipalityCache=window.__pcMunicipalityCache||new Map();
-for(let k=0;k<pcs.length;k++){
-  const [pc,pcRows]=pcs[k]; const pt=[pcRows[0].lng,pcRows[0].lat];
-  let idx=window.__pcMunicipalityCache.get(pc);
-  if(idx===undefined){
-    idx=-1;
-    for(let i=0;i<municipalities.length;i++){if(d3.geoContains(municipalities[i],pt)){idx=i;break}}
-    window.__pcMunicipalityCache.set(pc,idx);
-  }
-  if(idx>=0)assigned.get(idx).push(...pcRows);
-  if(k%60===0){status.textContent=`Building regions… ${Math.round(k/pcs.length*100)}%`;await new Promise(r=>setTimeout(r,0))}
+const pcToIdx=new Map(municipalities.map((f,i)=>[f.properties.postcode,i]));
+for(const [pc,pcRows] of pcs){
+  const idx=pcToIdx.get(pc);
+  if(idx!==undefined)assigned.get(idx).push(...pcRows);
 }
 
 for(let i=0;i<municipalities.length;i++){
