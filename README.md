@@ -40,11 +40,20 @@ and I'll regenerate this file using the same pipeline (sector → postcode major
 
 `postcode-reference.xlsx` is just a normal Excel file with these columns: `Land`, `Postcode`,
 `Gemeente`, `Naam` (partner name), `Postbussen`, `Provincie`, `#2024`, `#2025`, `#2026`, `Temp`,
-`Partner type`, plus a few optional admin columns Winsol already uses.
+`Partner Type`, `Go or NoGo`, `Expansie`, `VF 2025`, `VF 2024`, `VF 2023`, `VF_2025 as B2B`,
+`VF_2024 as B2B`, `VF_2023 as B2B`, plus a few optional admin columns Winsol already uses.
 
-The `Partner type` column powers the **Type** tab in the app — any values that appear in it show
-up there as selectable filters. Rows with the type **"Winsol concept store"** are always rendered
-in yellow on the map, regardless of selection, so those locations stand out visually.
+The `Partner Type` column powers the **Type** tab — any values that appear in it show up there
+as selectable filters. Rows with the type **"Winsol concept store"** are always rendered in
+yellow on the map, regardless of selection, so those locations stand out visually.
+
+The `Go or NoGo`, `Expansie`, and `VF...` columns power the **Expansion** tab:
+- `Expansie` is the zone name a postcode belongs to.
+- `Go or NoGo` marks whether that specific postcode counts as part of the zone's visualization
+  (a zone can mix Go and NoGo postcodes — only the Go ones are shown/colored on the map).
+- Selecting one or more zones in the Expansion tab colors each zone differently on the map and
+  shows a resumé (zone name, postcode count, #2025/#2024 leads, and VF 2025/2024 as B2B).
+- With no zone selected, the map behaves exactly as before (colored by partner).
 
 To update it:
 

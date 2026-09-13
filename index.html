@@ -24,6 +24,7 @@ button,input{font:inherit}.hidden{display:none!important}
 #app{height:100vh;display:grid;grid-template-columns:340px 1fr}.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:18px;overflow:auto}.topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.ghost{background:transparent;color:#c7d2dc;border:1px solid #34475d;border-radius:9px;padding:8px 10px;cursor:pointer}.section{padding:18px 0;border-top:1px solid #223144}.section:first-of-type{border-top:0}.section h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#8fa0b2;margin:0 0 12px}.drop{border:1px dashed #425872;border-radius:12px;padding:16px;background:#0d151f}.drop input{width:100%}.hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:9px}.status{margin-top:10px;padding:10px 12px;border-radius:9px;background:#0c1721;color:#b7c5d2;font-size:13px}.status.ok{background:#0d2a20;color:#9be2c1}.status.bad{background:#32191b;color:#f0aaaa}.controls{display:flex;gap:8px;flex-wrap:wrap}.mini{background:#182535;color:#dce5ed;border:1px solid #32485f;border-radius:8px;padding:8px 10px;cursor:pointer}.mini.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .legend{display:grid;gap:5px}.legend button{width:100%;display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid transparent;border-radius:8px;background:transparent;color:#d9e2ea;padding:7px 8px;cursor:pointer}.legend button:hover,.legend button.active{background:#1a2634;border-color:#38516c}.sw{width:12px;height:12px;border-radius:3px}.cnt{font-size:12px;color:#8193a5}.detail{font-size:13px;line-height:1.55;color:#d0dae3}.muted{color:#8495a6}.mapwrap{position:relative;min-width:0}#map{position:absolute;inset:0}
 .partner-summary{position:absolute;z-index:500;right:20px;top:18px;width:min(300px,calc(100% - 40px));display:flex;flex-direction:column;gap:9px;max-height:calc(100% - 36px);overflow-y:auto}
+.expansion-summary{right:auto;left:20px}
 .partner-summary.hidden{opacity:0;pointer-events:none}
 .ps-card{background:rgba(10,16,23,.88);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:14px 16px;transition:opacity .25s ease,transform .25s ease;flex:0 0 auto}
 .ps-card.ps-total{border-color:var(--accent);box-shadow:0 0 0 1px rgba(255,107,36,.35)}
@@ -91,6 +92,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
   .mapwrap{order:1;flex:1;min-height:58%;position:relative}
   #map{position:absolute;inset:0}
   .partner-summary{left:10px;right:10px;top:auto;bottom:10px;width:auto;max-height:50vh}
+  .expansion-summary{top:10px;bottom:auto;max-height:40vh}
   .section{padding:13px 0}
   .legend{grid-template-columns:1fr}
   .legend button{min-height:44px;padding:9px 8px}
@@ -107,6 +109,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
   .ps-toolbar span{font-size:12px;font-weight:700;color:#c9d3dd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ps-toolbar button{background:#182535;color:#dce5ed;border:1px solid #32485f;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;min-height:32px;flex:0 0 auto}
   #partnerSummary.collapsed #psCards{display:none}
+  #expansionSummary.collapsed #esCards{display:none}
 }
 @media(max-width:480px){
   .sidebar{height:46%;min-height:210px}
@@ -200,6 +203,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
         <button id="tabPartners" class="tab-btn active" type="button" role="tab" aria-selected="true">Partners</button>
         <button id="tabProvince" class="tab-btn" type="button" role="tab" aria-selected="false">Province</button>
         <button id="tabType" class="tab-btn" type="button" role="tab" aria-selected="false">Type</button>
+        <button id="tabExpansion" class="tab-btn" type="button" role="tab" aria-selected="false">Expansion</button>
         <button id="tabReference" class="tab-btn" type="button" role="tab" aria-selected="false">Reference</button>
       </div>
       <div id="partnersPane" class="tab-pane">
@@ -217,6 +221,11 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
         <div class="hint" style="margin:8px 0 10px">From the "Partner type" column in your reference list. <strong>Winsol concept store</strong> is always shown in yellow on the map.</div>
         <div id="typeLegend" class="legend"><div class="muted">No dataset loaded.</div></div>
       </div>
+      <div id="expansionPane" class="tab-pane hidden">
+        <div class="topline"><span class="pane-label">Select one or more Go zones</span><div class="controls"><button id="selectAllZones" class="mini" type="button">All</button><button id="clearZones" class="mini" type="button">Clear</button></div></div>
+        <div class="hint" style="margin:8px 0 10px">Only postcodes marked <strong>"Go"</strong> in a zone are shown, each zone in its own color. With no zone selected, the map shows partners as usual.</div>
+        <div id="zoneLegend" class="legend"><div class="muted">No dataset loaded.</div></div>
+      </div>
       <div id="referencePane" class="tab-pane hidden">
         <div class="drop"><input id="fileInput" type="file" accept=".xls,.xlsx,.csv" /><div class="hint">Required columns: postcode + partner/name. Municipality, province, postboxes, partner type and yearly values are optional.<br><br><strong>Current behavior:</strong> this HTML contains a built-in reference list. Uploading a new file replaces the active reference and stores it in this browser.</div></div>
         <div id="uploadStatus" class="status">Loading built-in reference list…</div>
@@ -227,7 +236,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
       <button id="adminOpenBtn" class="ghost" type="button" style="width:100%">Admin</button>
     </div>
   </aside>
-  <main class="mapwrap"><div id="map"></div><button id="mobileViewToggle" class="mobile-map-toggle" type="button">Show map</button><div id="partnerSummary" class="partner-summary hidden"><div class="ps-toolbar"><span id="psToolbarLabel">Partner info</span><button id="psCollapseBtn" type="button">Hide</button></div><div id="psCards"></div></div></main>
+  <main class="mapwrap"><div id="map"></div><button id="mobileViewToggle" class="mobile-map-toggle" type="button">Show map</button><div id="partnerSummary" class="partner-summary hidden"><div class="ps-toolbar"><span id="psToolbarLabel">Partner info</span><button id="psCollapseBtn" type="button">Hide</button></div><div id="psCards"></div></div><div id="expansionSummary" class="partner-summary expansion-summary hidden"><div class="ps-toolbar"><span id="esToolbarLabel">Zone info</span><button id="esCollapseBtn" type="button">Hide</button></div><div id="esCards"></div></div></main>
 </section>
 
 <div id="adminOverlay" class="admin-overlay hidden">
@@ -1442,6 +1451,7 @@ const tabs={
   partners:{btn:document.getElementById('tabPartners'),pane:document.getElementById('partnersPane')},
   province:{btn:document.getElementById('tabProvince'),pane:document.getElementById('provincePane')},
   type:{btn:document.getElementById('tabType'),pane:document.getElementById('typePane')},
+  expansion:{btn:document.getElementById('tabExpansion'),pane:document.getElementById('expansionPane')},
   reference:{btn:document.getElementById('tabReference'),pane:document.getElementById('referencePane')}
 };
 function showPane(which){
@@ -1455,6 +1465,7 @@ function showPane(which){
 tabs.partners.btn.onclick=()=>showPane('partners');
 tabs.province.btn.onclick=()=>showPane('province');
 tabs.type.btn.onclick=()=>showPane('type');
+tabs.expansion.btn.onclick=()=>showPane('expansion');
 tabs.reference.btn.onclick=()=>showPane('reference');
 
 const map=L.map('map',{zoomControl:false,attributionControl:false,minZoom:7,maxZoom:17,preferCanvas:true}).setView([50.72,4.62],8);
@@ -1462,7 +1473,7 @@ window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 const road=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});imagery.addTo(map);labels.addTo(map);
-let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[];
+let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),selectedExpansionZones=new Set(),q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
 // Shared settings: config.json (if present in the repo) provides the default
 // partner order/merges for every visitor. A person's own localStorage (set
 // via the Admin panel in this browser) always takes priority over it, so an
@@ -1487,7 +1498,7 @@ function buildCanonicalMap(groups){const m=new Map();for(const g of groups){cons
 let partnerGroups=loadPartnerGroups();
 let canonicalMap=buildCanonicalMap(partnerGroups);
 function canonicalPartner(raw){return canonicalMap.get(raw)||raw}
-const detail=document.getElementById('detail'),legend=document.getElementById('legend'),provinceLegend=document.getElementById('provinceLegend'),typeLegend=document.getElementById('typeLegend'),status=document.getElementById('uploadStatus');
+const detail=document.getElementById('detail'),legend=document.getElementById('legend'),provinceLegend=document.getElementById('provinceLegend'),typeLegend=document.getElementById('typeLegend'),zoneLegend=document.getElementById('zoneLegend'),status=document.getElementById('uploadStatus');
 try{
   const res=await fetch('./postcode-boundaries.geojson',{cache:'no-store'});
   if(!res.ok)throw new Error(`Could not load postcode boundaries (${res.status})`);
@@ -1501,7 +1512,7 @@ function fname(f){const p=f.properties||{};return p.name_nl||p.naam||p.NAME_2||p
 function normKey(s){return String(s||'').trim().toLowerCase().replace(/[ _-]/g,'')}
 function pick(obj,names){const keys=Object.keys(obj);for(const n of names){const hit=keys.find(k=>normKey(k)===normKey(n));if(hit!=null)return obj[hit]}return undefined}
 function number(v){if(v==null||v==='')return 0;const n=Number(String(v).replace(/\s/g,'').replace(',','.'));return Number.isFinite(n)?n:0}
-function cleanRows(raw){const out=[];for(const r of raw){let pc=pick(r,['Postcode','PostalCode','Zip','ZIP']);pc=String(pc??'').trim().replace(/\.0$/,'');if(!/^\d{4}$/.test(pc)||!PostalCodesCoordinates[pc])continue;const partner=String(pick(r,['Naam','Partner','Name','Dealer'])??'').trim();if(!partner)continue;const c=PostalCodesCoordinates[pc];const tv=String(pick(r,['Temp','Temporary','Tijdelijk'])??'').trim().toLowerCase();const temp=(tv==='1'||tv==='true'||tv==='yes'||tv==='ja'||tv==='x');const partnerType=String(pick(r,['Partner type','PartnerType','Type partner','Type'])??'').trim();out.push({postcode:pc,partner,gemeente:String(pick(r,['Gemeente','Municipality','City'])??''),provincie:String(pick(r,['Provincie','Province'])??''),postbussen:number(pick(r,['Postbussen','Postboxes','Brievenbussen'])),y2024:number(pick(r,['#2024','2024'])),y2025:number(pick(r,['#2025','2025'])),y2026:number(pick(r,['#2026','2026'])),temp,partnerType,lat:c.lat,lng:c.lng})}return out}
+function cleanRows(raw){const out=[];for(const r of raw){let pc=pick(r,['Postcode','PostalCode','Zip','ZIP']);pc=String(pc??'').trim().replace(/\.0$/,'');if(!/^\d{4}$/.test(pc)||!PostalCodesCoordinates[pc])continue;const partner=String(pick(r,['Naam','Partner','Name','Dealer'])??'').trim();if(!partner)continue;const c=PostalCodesCoordinates[pc];const tv=String(pick(r,['Temp','Temporary','Tijdelijk'])??'').trim().toLowerCase();const temp=(tv==='1'||tv==='true'||tv==='yes'||tv==='ja'||tv==='x');const partnerType=String(pick(r,['Partner type','PartnerType','Type partner','Type'])??'').trim();const goNoGo=String(pick(r,['Go or NoGo','Go_NoGo','GoNoGo','Go/NoGo'])??'').trim();const expansionZone=String(pick(r,['Expansie','Expansion','Expansion zone'])??'').trim();out.push({postcode:pc,partner,gemeente:String(pick(r,['Gemeente','Municipality','City'])??''),provincie:String(pick(r,['Provincie','Province'])??''),postbussen:number(pick(r,['Postbussen','Postboxes','Brievenbussen'])),y2024:number(pick(r,['#2024','2024'])),y2025:number(pick(r,['#2025','2025'])),y2026:number(pick(r,['#2026','2026'])),temp,partnerType,goNoGo,expansionZone,vf2025:number(pick(r,['VF 2025','VF2025'])),vf2024:number(pick(r,['VF 2024','VF2024'])),vf2023:number(pick(r,['VF 2023','VF2023'])),vf2025B2B:number(pick(r,['VF_2025 as B2B','VF 2025 as B2B'])),vf2024B2B:number(pick(r,['VF_2024 as B2B','VF 2024 as B2B'])),vf2023B2B:number(pick(r,['VF_2023 as B2B','VF 2023 as B2B'])),lat:c.lat,lng:c.lng})}return out}
 function partnerColor(name,index){if(!name)return '#6f7882';const h=(index*137.508+18)%360;return `hsl(${h} 72% 48%)`}
 function getPartnerOrder(map){
   let saved=[];
@@ -1535,10 +1546,22 @@ function renderPartnerLegend(){
   document.getElementById('selectAllPartners').onclick=()=>{selectedPartners=new Set(counts.keys());for(const [p,b] of buttons){b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions();updatePartnerSummary()};
   document.getElementById('clearPartners').onclick=()=>{selectedPartners.clear();for(const b of buttons.values()){b.classList.remove('active');b.setAttribute('aria-pressed','false')}regionLayer.setStyle(style);fitVisibleRegions();updatePartnerSummary()};
 }
-function visible(f){const p=f.properties._partner,pr=f.properties._province,pt=f.properties._partnerType;if(tempOnly&&!f.properties._temp)return false;if(selectedPartners.size&&(!p||!selectedPartners.has(p)))return false;if(selectedProvinces.size&&(!pr||!selectedProvinces.has(pr)))return false;if(selectedPartnerTypes.size&&(!pt||!selectedPartnerTypes.has(pt)))return false;if(!q)return true;const ss=q.toLowerCase();return (p||'').toLowerCase().includes(ss)||(pr||'').toLowerCase().includes(ss)||fname(f).toLowerCase().includes(ss)||f.properties._rows.some(r=>r.postcode.includes(ss))}
+function visible(f){const p=f.properties._partner,pr=f.properties._province,pt=f.properties._partnerType,gz=f.properties._goZone;if(tempOnly&&!f.properties._temp)return false;if(selectedPartners.size&&(!p||!selectedPartners.has(p)))return false;if(selectedProvinces.size&&(!pr||!selectedProvinces.has(pr)))return false;if(selectedPartnerTypes.size&&(!pt||!selectedPartnerTypes.has(pt)))return false;if(selectedExpansionZones.size&&(!gz||!selectedExpansionZones.has(gz)))return false;if(!q)return true;const ss=q.toLowerCase();return (p||'').toLowerCase().includes(ss)||(pr||'').toLowerCase().includes(ss)||fname(f).toLowerCase().includes(ss)||f.properties._rows.some(r=>r.postcode.includes(ss))}
 function isConceptStore(f){const t=(f.properties._partnerType||'').toLowerCase().replace(/[\s_-]+/g,'');return t.includes('winsolconceptstore')}
-function style(f){const on=visible(f),p=f.properties._partner;const fillColor=isConceptStore(f)?'#FFC72C':(p?partnerColor(p,pIndex.get(p)||0):'#6f7882');return{color:'#fff',weight:on?1.05:.45,opacity:on?.95:.12,fillColor,fillOpacity:on?(p?.78:.18):.04}}
-function fitVisibleRegions(){const ls=[];regionLayer.eachLayer(l=>{if(l.feature&&visible(l.feature))ls.push(l)});if(ls.length){const g=L.featureGroup(ls);const extraRight=selectedPartners.size?300:40;map.fitBounds(g.getBounds(),{paddingTopLeft:[40,40],paddingBottomRight:[extraRight,50]})}}
+function style(f){
+  const on=visible(f),p=f.properties._partner,gz=f.properties._goZone;
+  const zoneMode=selectedExpansionZones.size>0;
+  let fillColor,hasCategory;
+  if(zoneMode){
+    fillColor=gz?partnerColor(gz,zoneIndex.get(gz)||0):'#6f7882';
+    hasCategory=!!gz;
+  }else{
+    fillColor=isConceptStore(f)?'#FFC72C':(p?partnerColor(p,pIndex.get(p)||0):'#6f7882');
+    hasCategory=!!p;
+  }
+  return{color:'#fff',weight:on?1.05:.45,opacity:on?.95:.12,fillColor,fillOpacity:on?(hasCategory?.78:.18):.04};
+}
+function fitVisibleRegions(){const ls=[];regionLayer.eachLayer(l=>{if(l.feature&&visible(l.feature))ls.push(l)});if(ls.length){const g=L.featureGroup(ls);const extraRight=selectedPartners.size?300:40;const extraLeft=selectedExpansionZones.size?300:40;map.fitBounds(g.getBounds(),{paddingTopLeft:[extraLeft,40],paddingBottomRight:[extraRight,50]})}}
 function partnerCardHTML(title,postboxes,y2025,isTotal){
   return `<div class="ps-card${isTotal?' ps-total':''}">`+
     `<div class="ps-title">${title}</div>`+
@@ -1575,6 +1598,56 @@ function updatePartnerSummary(){
     }
     if(names.length>MAX_INDIVIDUAL)html+=`<div class="ps-more">+${names.length-MAX_INDIVIDUAL} more selected (included in total)</div>`;
     if(labelEl)labelEl.textContent=`${names.length} partners`;
+  }
+  cardsEl.innerHTML=html;
+  box.classList.remove('hidden');
+}
+function zoneCardHTML(title,postcodeCount,y2025,y2024,vf2025B2B,vf2024B2B,isTotal){
+  return `<div class="ps-card${isTotal?' ps-total':''}">`+
+    `<div class="ps-title">${title}</div>`+
+    `<div class="ps-row"><span>Postcodes</span><strong>${postcodeCount.toLocaleString('nl-BE')}</strong></div>`+
+    `<div class="ps-row"><span>#2025 leads</span><strong>${Math.round(y2025).toLocaleString('nl-BE')}</strong></div>`+
+    `<div class="ps-row"><span>#2024 leads</span><strong>${Math.round(y2024).toLocaleString('nl-BE')}</strong></div>`+
+    `<div class="ps-row"><span>VF 2025 (B2B)</span><strong>${Math.round(vf2025B2B).toLocaleString('nl-BE')}</strong></div>`+
+    `<div class="ps-row"><span>VF 2024 (B2B)</span><strong>${Math.round(vf2024B2B).toLocaleString('nl-BE')}</strong></div>`+
+  `</div>`;
+}
+function zoneStats(zoneName){
+  const feats=municipalities.filter(f=>f.properties._goZone===zoneName);
+  let y2025=0,y2024=0,vf2025B2B=0,vf2024B2B=0;
+  for(const f of feats){
+    const p=f.properties;
+    y2025+=(p._rows||[]).reduce((s,r)=>s+(r.y2025||0),0);
+    y2024+=(p._rows||[]).reduce((s,r)=>s+(r.y2024||0),0);
+    vf2025B2B+=p._vf2025B2B||0;
+    vf2024B2B+=p._vf2024B2B||0;
+  }
+  return {postcodeCount:feats.length,y2025,y2024,vf2025B2B,vf2024B2B};
+}
+function updateExpansionSummary(){
+  const box=document.getElementById('expansionSummary');
+  const cardsEl=document.getElementById('esCards');
+  const labelEl=document.getElementById('esToolbarLabel');
+  if(!box||!cardsEl)return;
+  if(!selectedExpansionZones.size){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('esCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';return}
+  const MAX_INDIVIDUAL=5;
+  const names=[...selectedExpansionZones];
+  let html='';
+  if(names.length===1){
+    const s=zoneStats(names[0]);
+    html=zoneCardHTML(names[0],s.postcodeCount,s.y2025,s.y2024,s.vf2025B2B,s.vf2024B2B,false);
+    if(labelEl)labelEl.textContent=names[0];
+  }else{
+    let totalPc=0,totalY25=0,totalY24=0,totalVf25=0,totalVf24=0;
+    for(const z of names){const s=zoneStats(z);totalPc+=s.postcodeCount;totalY25+=s.y2025;totalY24+=s.y2024;totalVf25+=s.vf2025B2B;totalVf24+=s.vf2024B2B}
+    html+=zoneCardHTML(`Total · ${names.length} zones`,totalPc,totalY25,totalY24,totalVf25,totalVf24,true);
+    const shown=names.slice(-MAX_INDIVIDUAL).reverse();
+    for(const z of shown){
+      const s=zoneStats(z);
+      html+=zoneCardHTML(z,s.postcodeCount,s.y2025,s.y2024,s.vf2025B2B,s.vf2024B2B,false);
+    }
+    if(names.length>MAX_INDIVIDUAL)html+=`<div class="ps-more">+${names.length-MAX_INDIVIDUAL} more selected (included in total)</div>`;
+    if(labelEl)labelEl.textContent=`${names.length} zones`;
   }
   cardsEl.innerHTML=html;
   box.classList.remove('hidden');
@@ -1748,9 +1821,14 @@ for(let i=0;i<municipalities.length;i++){
  let province='',pBest=-1,pN=-1;for(const [pr,a] of provinceVotes){if(a.boxes>pBest||(a.boxes===pBest&&a.n>pN)){province=pr;pBest=a.boxes;pN=a.n}}
  const typeVotes=new Map();for(const r of found){const t=(r.partnerType||'').trim();if(!t)continue;const a=typeVotes.get(t)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;typeVotes.set(t,a)}
  let partnerType='',tBest=-1,tN=-1;for(const [t,a] of typeVotes){if(a.boxes>tBest||(a.boxes===tBest&&a.n>tN)){partnerType=t;tBest=a.boxes;tN=a.n}}
- f.properties._partner=winner;f.properties._province=province;f.properties._partnerType=partnerType;f.properties._rows=found;f.properties._boxes=found.reduce((sum,r)=>sum+(r.postbussen||0),0);f.properties._temp=found.some(r=>r.temp===true)
+ const goNoGoVotes=new Map();for(const r of found){const g=(r.goNoGo||'').trim();if(!g)continue;const a=goNoGoVotes.get(g)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;goNoGoVotes.set(g,a)}
+ let goNoGo='',gBest=-1,gN=-1;for(const [g,a] of goNoGoVotes){if(a.boxes>gBest||(a.boxes===gBest&&a.n>gN)){goNoGo=g;gBest=a.boxes;gN=a.n}}
+ const zoneVotes=new Map();for(const r of found){const z=(r.expansionZone||'').trim();if(!z)continue;const a=zoneVotes.get(z)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;zoneVotes.set(z,a)}
+ let expansionZone='',zBest=-1,zN=-1;for(const [z,a] of zoneVotes){if(a.boxes>zBest||(a.boxes===zBest&&a.n>zN)){expansionZone=z;zBest=a.boxes;zN=a.n}}
+ const isGo=goNoGo.toLowerCase()==='go';
+ f.properties._partner=winner;f.properties._province=province;f.properties._partnerType=partnerType;f.properties._goNoGo=goNoGo;f.properties._expansionZone=expansionZone||null;f.properties._goZone=(isGo&&expansionZone)?expansionZone:null;f.properties._vf2025=found.reduce((s,r)=>s+(r.vf2025||0),0);f.properties._vf2024=found.reduce((s,r)=>s+(r.vf2024||0),0);f.properties._vf2023=found.reduce((s,r)=>s+(r.vf2023||0),0);f.properties._vf2025B2B=found.reduce((s,r)=>s+(r.vf2025B2B||0),0);f.properties._vf2024B2B=found.reduce((s,r)=>s+(r.vf2024B2B||0),0);f.properties._vf2023B2B=found.reduce((s,r)=>s+(r.vf2023B2B||0),0);f.properties._rows=found;f.properties._boxes=found.reduce((sum,r)=>sum+(r.postbussen||0),0);f.properties._temp=found.some(r=>r.temp===true)
 }
-regionLayer=L.geoJSON({type:'FeatureCollection',features:municipalities},{style,onEachFeature(f,l){const p=f.properties,partner=p._partner||'Not assigned';const pcodes=[...new Set(p._rows.map(r=>r.postcode))].sort();const boxes=p._rows.reduce((sum,r)=>sum+(r.postbussen||0),0);const y2025=p._rows.reduce((sum,r)=>sum+(r.y2025||0),0);l.bindTooltip(`<b>Partner:</b> ${partner}<br><b>Gemeente:</b> ${fname(f)}<br><b>Postcode:</b> ${pcodes.join(', ')}<br><b># Bussen:</b> ${Math.round(boxes).toLocaleString('nl-BE')}<br><b>#2025:</b> ${Math.round(y2025).toLocaleString('nl-BE')}${p._partnerType?`<br><b>Type:</b> ${p._partnerType}`:''}`,{className:'regiontip',sticky:true});l.on({click(){detail.innerHTML=`<strong>${fname(f)}</strong><br>Partner: ${partner}<br>Province: ${p._province||'-'}${p._partnerType?`<br>Type: ${p._partnerType}`:''}<br>Temp zone: <strong>${p._temp?'Yes':'No'}</strong><br>Postcodes: ${pcodes.length}<br>Postboxes: ${Math.round(p._boxes).toLocaleString('nl-BE')}<br><span class="muted">${pcodes.slice(0,28).join(', ')}${pcodes.length>28?' …':''}</span>`},mouseover:e=>e.target.setStyle({weight:2,fillOpacity:.9}),mouseout:e=>regionLayer.resetStyle(e.target)})}}).addTo(map);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});
+regionLayer=L.geoJSON({type:'FeatureCollection',features:municipalities},{style,onEachFeature(f,l){const p=f.properties,partner=p._partner||'Not assigned';const pcodes=[...new Set(p._rows.map(r=>r.postcode))].sort();const boxes=p._rows.reduce((sum,r)=>sum+(r.postbussen||0),0);const y2025=p._rows.reduce((sum,r)=>sum+(r.y2025||0),0);const zoneLine=p._expansionZone?`<br><b>Expansion zone:</b> ${p._expansionZone} (${p._goNoGo||'-'})`:'';l.bindTooltip(`<b>Partner:</b> ${partner}<br><b>Gemeente:</b> ${fname(f)}<br><b>Postcode:</b> ${pcodes.join(', ')}<br><b># Bussen:</b> ${Math.round(boxes).toLocaleString('nl-BE')}<br><b>#2025:</b> ${Math.round(y2025).toLocaleString('nl-BE')}${p._partnerType?`<br><b>Type:</b> ${p._partnerType}`:''}${zoneLine}`,{className:'regiontip',sticky:true});l.on({click(){const zoneDetail=p._expansionZone?`<br>Expansion zone: <strong>${p._expansionZone}</strong> (${p._goNoGo||'-'})<br>#2025 leads: ${Math.round(y2025).toLocaleString('nl-BE')}<br>VF 2025 as B2B: ${Math.round(p._vf2025B2B).toLocaleString('nl-BE')}<br>VF 2024 as B2B: ${Math.round(p._vf2024B2B).toLocaleString('nl-BE')}`:'';detail.innerHTML=`<strong>${fname(f)}</strong><br>Partner: ${partner}<br>Province: ${p._province||'-'}${p._partnerType?`<br>Type: ${p._partnerType}`:''}<br>Temp zone: <strong>${p._temp?'Yes':'No'}</strong><br>Postcodes: ${pcodes.length}<br>Postboxes: ${Math.round(p._boxes).toLocaleString('nl-BE')}${zoneDetail}<br><span class="muted">${pcodes.slice(0,28).join(', ')}${pcodes.length>28?' …':''}</span>`},mouseover:e=>e.target.setStyle({weight:2,fillOpacity:.9}),mouseout:e=>regionLayer.resetStyle(e.target)})}}).addTo(map);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});
 const provinceCounts=new Map();for(const f of municipalities){const pr=f.properties._province;if(pr)provinceCounts.set(pr,(provinceCounts.get(pr)||0)+1)}
 provinceLegend.innerHTML='';const provinceButtons=new Map();[...provinceCounts].sort((a,b)=>a[0].localeCompare(b[0],'nl')).forEach(([pr,n])=>{const b=document.createElement('button');b.innerHTML=`<span class="sw" style="background:#8b96a3"></span><span>${pr}</span><span class="cnt">${n}</span>`;b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{if(selectedProvinces.has(pr)){selectedProvinces.delete(pr);b.classList.remove('active');b.setAttribute('aria-pressed','false')}else{selectedProvinces.add(pr);b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions()});provinceButtons.set(pr,b);provinceLegend.appendChild(b)});if(!provinceCounts.size)provinceLegend.innerHTML='<div class="muted">No provinces found.</div>';
 document.getElementById('selectAllProvinces').onclick=()=>{selectedProvinces=new Set(provinceCounts.keys());for(const [pr,b] of provinceButtons){b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions()};
@@ -1759,10 +1837,15 @@ const typeCounts=new Map();for(const f of municipalities){const t=f.properties._
 typeLegend.innerHTML='';const typeButtons=new Map();[...typeCounts].sort((a,b)=>a[0].localeCompare(b[0],'nl')).forEach(([t,n])=>{const isConcept=t.toLowerCase().replace(/[\s_-]+/g,'').includes('winsolconceptstore');const b=document.createElement('button');b.innerHTML=`<span class="sw" style="background:${isConcept?'#FFC72C':'#8b96a3'}"></span><span>${t}</span><span class="cnt">${n}</span>`;b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{if(selectedPartnerTypes.has(t)){selectedPartnerTypes.delete(t);b.classList.remove('active');b.setAttribute('aria-pressed','false')}else{selectedPartnerTypes.add(t);b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions()});typeButtons.set(t,b);typeLegend.appendChild(b)});if(!typeCounts.size)typeLegend.innerHTML='<div class="muted">No partner types found. Add a \'Partner type\' column to your reference list.</div>';
 document.getElementById('selectAllTypes').onclick=()=>{selectedPartnerTypes=new Set(typeCounts.keys());for(const [t,b] of typeButtons){b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions()};
 document.getElementById('clearTypes').onclick=()=>{selectedPartnerTypes.clear();for(const b of typeButtons.values()){b.classList.remove('active');b.setAttribute('aria-pressed','false')}regionLayer.setStyle(style);fitVisibleRegions()};
+const zoneCounts=new Map();zoneIndex=new Map();for(const f of municipalities){const z=f.properties._goZone;if(z)zoneCounts.set(z,(zoneCounts.get(z)||0)+1)}
+[...zoneCounts.keys()].sort((a,b)=>a.localeCompare(b,'nl')).forEach((z,i)=>zoneIndex.set(z,i));
+zoneLegend.innerHTML='';const zoneButtons=new Map();[...zoneCounts].sort((a,b)=>b[1]-a[1]).forEach(([z,n])=>{const b=document.createElement('button');b.innerHTML=`<span class="sw" style="background:${partnerColor(z,zoneIndex.get(z)||0)}"></span><span>${z}</span><span class="cnt">${n}</span>`;b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{if(selectedExpansionZones.has(z)){selectedExpansionZones.delete(z);b.classList.remove('active');b.setAttribute('aria-pressed','false')}else{selectedExpansionZones.add(z);b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions();updateExpansionSummary()});zoneButtons.set(z,b);zoneLegend.appendChild(b)});if(!zoneCounts.size)zoneLegend.innerHTML='<div class="muted">No Go zones found. Add \'Go or NoGo\' and \'Expansie\' columns to your reference list.</div>';
+document.getElementById('selectAllZones').onclick=()=>{selectedExpansionZones=new Set(zoneCounts.keys());for(const [z,b] of zoneButtons){b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions();updateExpansionSummary()};
+document.getElementById('clearZones').onclick=()=>{selectedExpansionZones.clear();for(const b of zoneButtons.values()){b.classList.remove('active');b.setAttribute('aria-pressed','false')}regionLayer.setStyle(style);fitVisibleRegions();updateExpansionSummary()};
 partnerCounts=new Map();for(const f of municipalities){const p=f.properties._partner;if(p)partnerCounts.set(p,(partnerCounts.get(p)||0)+1)}
 renderPartnerLegend();
 document.getElementById('tempZones').onclick=()=>{tempOnly=!tempOnly;const b=document.getElementById('tempZones');b.classList.toggle('active',tempOnly);b.setAttribute('aria-pressed',tempOnly?'true':'false');regionLayer.setStyle(style);if(tempOnly){const visibleLayers=[];regionLayer.eachLayer(l=>{if(l.feature?.properties?._temp&&visible(l.feature))visibleLayers.push(l)});if(visibleLayers.length){const g=L.featureGroup(visibleLayers);map.fitBounds(g.getBounds(),{padding:[30,30]})}}};
-document.getElementById('search').oninput=e=>{q=e.target.value.trim();regionLayer.setStyle(style)};document.getElementById('reset').onclick=()=>{selectedPartners.clear();selectedProvinces.clear();selectedPartnerTypes.clear();q='';tempOnly=false;document.getElementById('search').value='';const tb=document.getElementById('tempZones');tb.classList.remove('active');tb.setAttribute('aria-pressed','false');[...legend.children].forEach(x=>x.classList.remove('active'));[...provinceLegend.children].forEach(x=>x.classList.remove('active'));[...typeLegend.children].forEach(x=>x.classList.remove('active'));regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});updatePartnerSummary()};
+document.getElementById('search').oninput=e=>{q=e.target.value.trim();regionLayer.setStyle(style)};document.getElementById('reset').onclick=()=>{selectedPartners.clear();selectedProvinces.clear();selectedPartnerTypes.clear();selectedExpansionZones.clear();q='';tempOnly=false;document.getElementById('search').value='';const tb=document.getElementById('tempZones');tb.classList.remove('active');tb.setAttribute('aria-pressed','false');[...legend.children].forEach(x=>x.classList.remove('active'));[...provinceLegend.children].forEach(x=>x.classList.remove('active'));[...typeLegend.children].forEach(x=>x.classList.remove('active'));[...zoneLegend.children].forEach(x=>x.classList.remove('active'));regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});updatePartnerSummary();updateExpansionSummary()};
 status.className='status ok';const tempPcs=new Set(rows.filter(r=>r.temp).map(r=>r.postcode)).size;status.textContent=`Ready · ${rows.length.toLocaleString('en')} valid rows · ${byPc.size} unique postcodes · ${partners.length} partners · ${provinceCounts.size} provinces · ${tempPcs} Temp postcodes.`;
 }
 
@@ -1877,6 +1960,15 @@ const sat=document.getElementById('sat'),roadBtn=document.getElementById('road')
 (function(){
   const box=document.getElementById('partnerSummary');
   const collapseBtn=document.getElementById('psCollapseBtn');
+  if(!box||!collapseBtn)return;
+  collapseBtn.addEventListener('click',()=>{
+    box.classList.toggle('collapsed');
+    collapseBtn.textContent=box.classList.contains('collapsed')?'Show':'Hide';
+  });
+})();
+(function(){
+  const box=document.getElementById('expansionSummary');
+  const collapseBtn=document.getElementById('esCollapseBtn');
   if(!box||!collapseBtn)return;
   collapseBtn.addEventListener('click',()=>{
     box.classList.toggle('collapsed');
