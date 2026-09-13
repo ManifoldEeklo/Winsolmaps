@@ -25,6 +25,8 @@ button,input{font:inherit}.hidden{display:none!important}
 .legend{display:grid;gap:5px}.legend button{width:100%;display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid transparent;border-radius:8px;background:transparent;color:#d9e2ea;padding:7px 8px;cursor:pointer}.legend button:hover,.legend button.active{background:#1a2634;border-color:#38516c}.sw{width:12px;height:12px;border-radius:3px}.cnt{font-size:12px;color:#8193a5}.detail{font-size:13px;line-height:1.55;color:#d0dae3}.muted{color:#8495a6}.mapwrap{position:relative;min-width:0}#map{position:absolute;inset:0}
 .partner-summary{position:absolute;z-index:500;right:20px;top:18px;width:min(300px,calc(100% - 40px));display:flex;flex-direction:column;gap:9px;max-height:calc(100% - 36px);overflow-y:auto}
 .expansion-summary{right:auto;left:20px}
+.ps-close-btn{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);color:#c9d3dd;border:1px solid rgba(255,255,255,.18);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:5;padding:0}
+.ps-close-btn:hover{background:rgba(255,255,255,.16);color:#fff}
 .partner-summary.hidden{opacity:0;pointer-events:none}
 .ps-card{background:rgba(10,16,23,.88);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:14px 16px;transition:opacity .25s ease,transform .25s ease;flex:0 0 auto}
 .ps-card.ps-total{border-color:var(--accent);box-shadow:0 0 0 1px rgba(255,107,36,.35)}
@@ -228,6 +230,11 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
           <button id="zoneModeGoBtn" class="mini" type="button" aria-pressed="false">Go zones</button>
         </div>
         <div class="hint" style="margin:0 0 10px"><strong>All</strong> colors every postcode by its Expansie zone. <strong>Go zones</strong> colors only postcodes marked "Go". Tap a zone below to see its resumé — tap another to switch to it.</div>
+        <div id="futureSearchSection" class="hidden" style="margin-bottom:14px">
+          <div class="topline"><span class="pane-label">Filter Go zones by Future search</span><div class="controls"><button id="selectAllFutureSearch" class="mini" type="button">All</button><button id="clearFutureSearch" class="mini" type="button">Clear</button></div></div>
+          <div class="hint" style="margin:8px 0 10px">Regions stay colored by their Expansie zone — this only narrows which Go postcodes are shown.</div>
+          <div id="futureSearchLegend" class="legend"></div>
+        </div>
         <div id="zoneLegend" class="legend"><div class="muted">Choose "All" or "Go zones" above to see zones.</div></div>
       </div>
       <div id="referencePane" class="tab-pane hidden">
@@ -240,7 +247,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
       <button id="adminOpenBtn" class="ghost" type="button" style="width:100%">Admin</button>
     </div>
   </aside>
-  <main class="mapwrap"><div id="map"></div><button id="mobileViewToggle" class="mobile-map-toggle" type="button">Show map</button><div id="partnerSummary" class="partner-summary hidden"><div class="ps-toolbar"><span id="psToolbarLabel">Partner info</span><button id="psCollapseBtn" type="button">Hide</button></div><div id="psCards"></div></div><div id="expansionSummary" class="partner-summary expansion-summary hidden"><div class="ps-toolbar"><span id="esToolbarLabel">Zone info</span><button id="esCollapseBtn" type="button">Hide</button></div><div id="esCards"></div></div></main>
+  <main class="mapwrap"><div id="map"></div><button id="mobileViewToggle" class="mobile-map-toggle" type="button">Show map</button><div id="partnerSummary" class="partner-summary hidden"><div class="ps-toolbar"><span id="psToolbarLabel">Partner info</span><button id="psCollapseBtn" type="button">Hide</button></div><div id="psCards"></div></div><div id="expansionSummary" class="partner-summary expansion-summary hidden"><button id="esCloseBtn" class="ps-close-btn" type="button" aria-label="Close">×</button><div class="ps-toolbar"><span id="esToolbarLabel">Zone info</span><button id="esCollapseBtn" type="button">Hide</button></div><div id="esCards"></div></div></main>
 </section>
 
 <div id="adminOverlay" class="admin-overlay hidden">
@@ -1481,6 +1488,7 @@ function resetAllTabFilters(){
   selectedPartnerTypes.clear();
   expansionMode=null;
   selectedZoneForResume=null;
+  selectedFutureSearch.clear();
   const legendEl=document.getElementById('legend'),provinceLegendEl=document.getElementById('provinceLegend'),typeLegendEl=document.getElementById('typeLegend');
   if(legendEl)[...legendEl.children].forEach(x=>x.classList.remove('active'));
   if(provinceLegendEl)[...provinceLegendEl.children].forEach(x=>x.classList.remove('active'));
@@ -1489,6 +1497,7 @@ function resetAllTabFilters(){
   if(zAllBtn){zAllBtn.classList.remove('active');zAllBtn.setAttribute('aria-pressed','false')}
   if(zGoBtn){zGoBtn.classList.remove('active');zGoBtn.setAttribute('aria-pressed','false')}
   if(typeof renderZoneLegend==='function')renderZoneLegend();
+  if(typeof renderFutureSearchLegend==='function')renderFutureSearchLegend();
   if(regionLayer){regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]})}
   if(typeof updatePartnerSummary==='function')updatePartnerSummary();
   if(typeof updateExpansionSummary==='function')updateExpansionSummary();
@@ -1504,7 +1513,7 @@ window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 const road=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});imagery.addTo(map);labels.addTo(map);
-let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
+let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
 // Shared settings: config.json (if present in the repo) provides the default
 // partner order/merges for every visitor. A person's own localStorage (set
 // via the Admin panel in this browser) always takes priority over it, so an
@@ -1567,7 +1576,7 @@ function fname(f){const p=f.properties||{};return p.name_nl||p.naam||p.NAME_2||p
 function normKey(s){return String(s||'').trim().toLowerCase().replace(/[ _-]/g,'')}
 function pick(obj,names){const keys=Object.keys(obj);for(const n of names){const hit=keys.find(k=>normKey(k)===normKey(n));if(hit!=null)return obj[hit]}return undefined}
 function number(v){if(v==null||v==='')return 0;const n=Number(String(v).replace(/\s/g,'').replace(',','.'));return Number.isFinite(n)?n:0}
-function cleanRows(raw){const out=[];for(const r of raw){let pc=pick(r,['Postcode','PostalCode','Zip','ZIP']);pc=String(pc??'').trim().replace(/\.0$/,'');if(!/^\d{4}$/.test(pc)||!PostalCodesCoordinates[pc])continue;const partner=String(pick(r,['Naam','Partner','Name','Dealer'])??'').trim();if(!partner)continue;const c=PostalCodesCoordinates[pc];const tv=String(pick(r,['Temp','Temporary','Tijdelijk'])??'').trim().toLowerCase();const temp=(tv==='1'||tv==='true'||tv==='yes'||tv==='ja'||tv==='x');const partnerType=String(pick(r,['Partner type','PartnerType','Type partner','Type'])??'').trim();const goNoGo=String(pick(r,['Go or NoGo','Go_NoGo','GoNoGo','Go/NoGo'])??'').trim();const expansionZone=String(pick(r,['Expansie','Expansion','Expansion zone'])??'').trim();out.push({postcode:pc,partner,gemeente:String(pick(r,['Gemeente','Municipality','City'])??''),provincie:String(pick(r,['Provincie','Province'])??''),postbussen:number(pick(r,['Postbussen','Postboxes','Brievenbussen'])),y2024:number(pick(r,['#2024','2024'])),y2025:number(pick(r,['#2025','2025'])),y2026:number(pick(r,['#2026','2026'])),temp,partnerType,goNoGo,expansionZone,vf2025:number(pick(r,['VF 2025','VF2025'])),vf2024:number(pick(r,['VF 2024','VF2024'])),vf2023:number(pick(r,['VF 2023','VF2023'])),vf2025B2B:number(pick(r,['VF_2025 as B2B','VF 2025 as B2B'])),vf2024B2B:number(pick(r,['VF_2024 as B2B','VF 2024 as B2B'])),vf2023B2B:number(pick(r,['VF_2023 as B2B','VF 2023 as B2B'])),lat:c.lat,lng:c.lng})}return out}
+function cleanRows(raw){const out=[];for(const r of raw){let pc=pick(r,['Postcode','PostalCode','Zip','ZIP']);pc=String(pc??'').trim().replace(/\.0$/,'');if(!/^\d{4}$/.test(pc)||!PostalCodesCoordinates[pc])continue;const partner=String(pick(r,['Naam','Partner','Name','Dealer'])??'').trim();if(!partner)continue;const c=PostalCodesCoordinates[pc];const tv=String(pick(r,['Temp','Temporary','Tijdelijk'])??'').trim().toLowerCase();const temp=(tv==='1'||tv==='true'||tv==='yes'||tv==='ja'||tv==='x');const partnerType=String(pick(r,['Partner type','PartnerType','Type partner','Type'])??'').trim();const futureSearch=String(pick(r,['Future search','Future Search','FutureSearch'])??'').trim();const goNoGo=String(pick(r,['Go or NoGo','Go_NoGo','GoNoGo','Go/NoGo'])??'').trim();const expansionZone=String(pick(r,['Expansie','Expansion','Expansion zone'])??'').trim();out.push({postcode:pc,partner,gemeente:String(pick(r,['Gemeente','Municipality','City'])??''),provincie:String(pick(r,['Provincie','Province'])??''),postbussen:number(pick(r,['Postbussen','Postboxes','Brievenbussen'])),y2024:number(pick(r,['#2024','2024'])),y2025:number(pick(r,['#2025','2025'])),y2026:number(pick(r,['#2026','2026'])),temp,partnerType,futureSearch,goNoGo,expansionZone,vf2025:number(pick(r,['VF 2025','VF2025'])),vf2024:number(pick(r,['VF 2024','VF2024'])),vf2023:number(pick(r,['VF 2023','VF2023'])),vf2025B2B:number(pick(r,['VF_2025 as B2B','VF 2025 as B2B'])),vf2024B2B:number(pick(r,['VF_2024 as B2B','VF 2024 as B2B'])),vf2023B2B:number(pick(r,['VF_2023 as B2B','VF 2023 as B2B'])),lat:c.lat,lng:c.lng})}return out}
 function partnerColor(name,index){if(!name)return '#6f7882';const h=(index*137.508+18)%360;return `hsl(${h} 72% 48%)`}
 function getPartnerOrder(map){
   let saved=[];
@@ -1606,6 +1615,7 @@ function visible(f){const p=f.properties._partner,pr=f.properties._province,pt=f
     const zoneProp=expansionMode==='all'?f.properties._expansionZone:f.properties._goZone;
     if(selectedZoneForResume){if(zoneProp!==selectedZoneForResume)return false}
     else if(!zoneProp)return false;
+    if(expansionMode==='go'&&selectedFutureSearch.size){const fs=f.properties._futureSearch;if(!fs||!selectedFutureSearch.has(fs))return false}
   }
   if(!q)return true;const ss=q.toLowerCase();return (p||'').toLowerCase().includes(ss)||(pr||'').toLowerCase().includes(ss)||fname(f).toLowerCase().includes(ss)||f.properties._rows.some(r=>r.postcode.includes(ss))}
 function isConceptStore(f){const t=(f.properties._partnerType||'').toLowerCase().replace(/[\s_-]+/g,'');return t.includes('winsolconceptstore')}
@@ -1663,7 +1673,7 @@ function updatePartnerSummary(){
   cardsEl.innerHTML=html;
   box.classList.remove('hidden');
 }
-function zoneCardHTML(title,postcodeCount,postbussen,y2025,y2024,vf2025B2B,vf2024B2B){
+function zoneCardHTML(title,postcodeCount,postbussen,y2025,y2024,vf2025B2B,vf2024B2B,futureSearch){
   return `<div class="ps-card">`+
     `<div class="ps-title">${title}</div>`+
     `<div class="ps-row"><span>Postcodes</span><strong>${postcodeCount.toLocaleString('nl-BE')}</strong></div>`+
@@ -1672,12 +1682,14 @@ function zoneCardHTML(title,postcodeCount,postbussen,y2025,y2024,vf2025B2B,vf202
     `<div class="ps-row"><span>#2024 leads</span><strong>${Math.round(y2024).toLocaleString('nl-BE')}</strong></div>`+
     `<div class="ps-row"><span>VF 2025 (B2B)</span><strong>${Math.round(vf2025B2B).toLocaleString('nl-BE')}</strong></div>`+
     `<div class="ps-row"><span>VF 2024 (B2B)</span><strong>${Math.round(vf2024B2B).toLocaleString('nl-BE')}</strong></div>`+
+    (futureSearch?`<div class="ps-row"><span>Type</span><strong>${futureSearch}</strong></div>`:'')+
   `</div>`;
 }
 function zoneStats(zoneName){
   const useGoOnly=expansionMode==='go';
   const feats=municipalities.filter(f=>(useGoOnly?f.properties._goZone:f.properties._expansionZone)===zoneName);
   let postbussen=0,y2025=0,y2024=0,vf2025B2B=0,vf2024B2B=0;
+  const fsVotes=new Map();
   for(const f of feats){
     const p=f.properties;
     postbussen+=p._boxes||0;
@@ -1685,8 +1697,10 @@ function zoneStats(zoneName){
     y2024+=(p._rows||[]).reduce((s,r)=>s+(r.y2024||0),0);
     vf2025B2B+=p._vf2025B2B||0;
     vf2024B2B+=p._vf2024B2B||0;
+    if(p._futureSearch){const a=fsVotes.get(p._futureSearch)||0;fsVotes.set(p._futureSearch,a+(p._boxes||0))}
   }
-  return {postcodeCount:feats.length,postbussen,y2025,y2024,vf2025B2B,vf2024B2B};
+  let futureSearch='',fsBest=-1;for(const [fs,n] of fsVotes){if(n>fsBest){futureSearch=fs;fsBest=n}}
+  return {postcodeCount:feats.length,postbussen,y2025,y2024,vf2025B2B,vf2024B2B,futureSearch};
 }
 function updateExpansionSummary(){
   const box=document.getElementById('expansionSummary');
@@ -1695,7 +1709,7 @@ function updateExpansionSummary(){
   if(!box||!cardsEl)return;
   if(!selectedZoneForResume){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('esCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';return}
   const s=zoneStats(selectedZoneForResume);
-  cardsEl.innerHTML=zoneCardHTML(selectedZoneForResume,s.postcodeCount,s.postbussen,s.y2025,s.y2024,s.vf2025B2B,s.vf2024B2B);
+  cardsEl.innerHTML=zoneCardHTML(selectedZoneForResume,s.postcodeCount,s.postbussen,s.y2025,s.y2024,s.vf2025B2B,s.vf2024B2B,s.futureSearch);
   if(labelEl)labelEl.textContent=selectedZoneForResume;
   box.classList.remove('hidden');
 }
@@ -1705,7 +1719,12 @@ function renderZoneLegend(){
   const counts=new Map();
   for(const f of municipalities){
     const z=expansionMode==='all'?f.properties._expansionZone:(expansionMode==='go'?f.properties._goZone:null);
-    if(z)counts.set(z,(counts.get(z)||0)+1);
+    if(!z)continue;
+    if(expansionMode==='go'&&selectedFutureSearch.size){
+      const fs=f.properties._futureSearch;
+      if(!fs||!selectedFutureSearch.has(fs))continue;
+    }
+    counts.set(z,(counts.get(z)||0)+1);
   }
   zl.innerHTML='';
   if(!expansionMode){zl.innerHTML='<div class="muted">Choose "All" or "Go zones" above to see zones.</div>';return}
@@ -1724,13 +1743,61 @@ function renderZoneLegend(){
     zl.appendChild(b);
   });
 }
+function renderFutureSearchLegend(){
+  const section=document.getElementById('futureSearchSection');
+  const el=document.getElementById('futureSearchLegend');
+  if(!section||!el)return;
+  if(expansionMode!=='go'){section.classList.add('hidden');return}
+  section.classList.remove('hidden');
+  const counts=new Map();
+  for(const f of municipalities){
+    if(!f.properties._goZone)continue;
+    const fs=f.properties._futureSearch;
+    if(fs)counts.set(fs,(counts.get(fs)||0)+1);
+  }
+  el.innerHTML='';
+  if(!counts.size){el.innerHTML='<div class="muted">No Future search values found.</div>';return}
+  [...counts].sort((a,b)=>b[1]-a[1]).forEach(([fs,n])=>{
+    const b=document.createElement('button');
+    b.innerHTML=`<span class="sw" style="background:#8b96a3"></span><span>${fs}</span><span class="cnt">${n}</span>`;
+    const isActive=selectedFutureSearch.has(fs);
+    if(isActive)b.classList.add('active');
+    b.setAttribute('aria-pressed',isActive?'true':'false');
+    b.addEventListener('click',()=>{
+      if(selectedFutureSearch.has(fs)){selectedFutureSearch.delete(fs);b.classList.remove('active');b.setAttribute('aria-pressed','false')}
+      else{selectedFutureSearch.add(fs);b.classList.add('active');b.setAttribute('aria-pressed','true')}
+      if(regionLayer)regionLayer.setStyle(style);
+      fitVisibleRegions();
+      renderZoneLegend();
+    });
+    el.appendChild(b);
+  });
+}
+document.getElementById('selectAllFutureSearch').onclick=()=>{
+  const vals=new Set();
+  for(const f of municipalities){if(!f.properties._goZone)continue;const fs=f.properties._futureSearch;if(fs)vals.add(fs)}
+  selectedFutureSearch=vals;
+  renderFutureSearchLegend();
+  if(regionLayer)regionLayer.setStyle(style);
+  fitVisibleRegions();
+  renderZoneLegend();
+};
+document.getElementById('clearFutureSearch').onclick=()=>{
+  selectedFutureSearch.clear();
+  renderFutureSearchLegend();
+  if(regionLayer)regionLayer.setStyle(style);
+  fitVisibleRegions();
+  renderZoneLegend();
+};
 function setExpansionMode(mode){
   expansionMode=(expansionMode===mode)?null:mode;
   selectedZoneForResume=null;
+  selectedFutureSearch.clear();
   const allBtn=document.getElementById('zoneModeAllBtn'),goBtn=document.getElementById('zoneModeGoBtn');
   if(allBtn){allBtn.classList.toggle('active',expansionMode==='all');allBtn.setAttribute('aria-pressed',expansionMode==='all'?'true':'false')}
   if(goBtn){goBtn.classList.toggle('active',expansionMode==='go');goBtn.setAttribute('aria-pressed',expansionMode==='go'?'true':'false')}
   renderZoneLegend();
+  renderFutureSearchLegend();
   if(regionLayer)regionLayer.setStyle(style);
   fitVisibleRegions();
   updateExpansionSummary();
@@ -1933,14 +2000,16 @@ for(let i=0;i<municipalities.length;i++){
  let province='',pBest=-1,pN=-1;for(const [pr,a] of provinceVotes){if(a.boxes>pBest||(a.boxes===pBest&&a.n>pN)){province=pr;pBest=a.boxes;pN=a.n}}
  const typeVotes=new Map();for(const r of found){const t=(r.partnerType||'').trim();if(!t)continue;const a=typeVotes.get(t)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;typeVotes.set(t,a)}
  let partnerType='',tBest=-1,tN=-1;for(const [t,a] of typeVotes){if(a.boxes>tBest||(a.boxes===tBest&&a.n>tN)){partnerType=t;tBest=a.boxes;tN=a.n}}
+ const fsVotes=new Map();for(const r of found){const fs=(r.futureSearch||'').trim();if(!fs)continue;const a=fsVotes.get(fs)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;fsVotes.set(fs,a)}
+ let futureSearch='',fsBest=-1,fsN=-1;for(const [fs,a] of fsVotes){if(a.boxes>fsBest||(a.boxes===fsBest&&a.n>fsN)){futureSearch=fs;fsBest=a.boxes;fsN=a.n}}
  const goNoGoVotes=new Map();for(const r of found){const g=(r.goNoGo||'').trim();if(!g)continue;const a=goNoGoVotes.get(g)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;goNoGoVotes.set(g,a)}
  let goNoGo='',gBest=-1,gN=-1;for(const [g,a] of goNoGoVotes){if(a.boxes>gBest||(a.boxes===gBest&&a.n>gN)){goNoGo=g;gBest=a.boxes;gN=a.n}}
  const zoneVotes=new Map();for(const r of found){const z=(r.expansionZone||'').trim();if(!z)continue;const a=zoneVotes.get(z)||{boxes:0,n:0};a.boxes+=r.postbussen||0;a.n++;zoneVotes.set(z,a)}
  let expansionZone='',zBest=-1,zN=-1;for(const [z,a] of zoneVotes){if(a.boxes>zBest||(a.boxes===zBest&&a.n>zN)){expansionZone=z;zBest=a.boxes;zN=a.n}}
  const isGo=goNoGo.toLowerCase()==='go';
- f.properties._partner=winner;f.properties._province=province;f.properties._partnerType=partnerType;f.properties._goNoGo=goNoGo;f.properties._expansionZone=expansionZone||null;f.properties._goZone=(isGo&&expansionZone)?expansionZone:null;f.properties._vf2025=found.reduce((s,r)=>s+(r.vf2025||0),0);f.properties._vf2024=found.reduce((s,r)=>s+(r.vf2024||0),0);f.properties._vf2023=found.reduce((s,r)=>s+(r.vf2023||0),0);f.properties._vf2025B2B=found.reduce((s,r)=>s+(r.vf2025B2B||0),0);f.properties._vf2024B2B=found.reduce((s,r)=>s+(r.vf2024B2B||0),0);f.properties._vf2023B2B=found.reduce((s,r)=>s+(r.vf2023B2B||0),0);f.properties._rows=found;f.properties._boxes=found.reduce((sum,r)=>sum+(r.postbussen||0),0);f.properties._temp=found.some(r=>r.temp===true)
+ f.properties._partner=winner;f.properties._province=province;f.properties._partnerType=partnerType;f.properties._futureSearch=futureSearch;f.properties._goNoGo=goNoGo;f.properties._expansionZone=expansionZone||null;f.properties._goZone=(isGo&&expansionZone)?expansionZone:null;f.properties._vf2025=found.reduce((s,r)=>s+(r.vf2025||0),0);f.properties._vf2024=found.reduce((s,r)=>s+(r.vf2024||0),0);f.properties._vf2023=found.reduce((s,r)=>s+(r.vf2023||0),0);f.properties._vf2025B2B=found.reduce((s,r)=>s+(r.vf2025B2B||0),0);f.properties._vf2024B2B=found.reduce((s,r)=>s+(r.vf2024B2B||0),0);f.properties._vf2023B2B=found.reduce((s,r)=>s+(r.vf2023B2B||0),0);f.properties._rows=found;f.properties._boxes=found.reduce((sum,r)=>sum+(r.postbussen||0),0);f.properties._temp=found.some(r=>r.temp===true)
 }
-regionLayer=L.geoJSON({type:'FeatureCollection',features:municipalities},{style,onEachFeature(f,l){const p=f.properties,partner=p._partner||'Not assigned';const pcodes=[...new Set(p._rows.map(r=>r.postcode))].sort();const boxes=p._rows.reduce((sum,r)=>sum+(r.postbussen||0),0);const y2025=p._rows.reduce((sum,r)=>sum+(r.y2025||0),0);const y2024=p._rows.reduce((sum,r)=>sum+(r.y2024||0),0);const zoneLine=p._expansionZone?`<b>Expansion zone:</b> ${p._expansionZone} (${p._goNoGo||'-'})<br>`:'';const typeLine=p._partnerType?`<b>Type:</b> ${p._partnerType}<br>`:'';l.bindTooltip(`${zoneLine}${typeLine}<b>Postcode:</b> ${pcodes.join(', ')}<br><b>#2025:</b> ${Math.round(y2025).toLocaleString('nl-BE')}<br><b>#2024:</b> ${Math.round(y2024).toLocaleString('nl-BE')}<br><b>VF 2025 as B2B:</b> ${Math.round(p._vf2025B2B||0).toLocaleString('nl-BE')}<br><b>VF 2024 as B2B:</b> ${Math.round(p._vf2024B2B||0).toLocaleString('nl-BE')}`,{className:'regiontip',sticky:true});l.on({click(){const zoneDetail=p._expansionZone?`<br>Expansion zone: <strong>${p._expansionZone}</strong> (${p._goNoGo||'-'})<br>#2025 leads: ${Math.round(y2025).toLocaleString('nl-BE')}<br>VF 2025 as B2B: ${Math.round(p._vf2025B2B).toLocaleString('nl-BE')}<br>VF 2024 as B2B: ${Math.round(p._vf2024B2B).toLocaleString('nl-BE')}`:'';detail.innerHTML=`<strong>${fname(f)}</strong><br>Partner: ${partner}<br>Province: ${p._province||'-'}${p._partnerType?`<br>Type: ${p._partnerType}`:''}<br>Temp zone: <strong>${p._temp?'Yes':'No'}</strong><br>Postcodes: ${pcodes.length}<br>Postboxes: ${Math.round(p._boxes).toLocaleString('nl-BE')}${zoneDetail}<br><span class="muted">${pcodes.slice(0,28).join(', ')}${pcodes.length>28?' …':''}</span>`;
+regionLayer=L.geoJSON({type:'FeatureCollection',features:municipalities},{style,onEachFeature(f,l){const p=f.properties,partner=p._partner||'Not assigned';const pcodes=[...new Set(p._rows.map(r=>r.postcode))].sort();const boxes=p._rows.reduce((sum,r)=>sum+(r.postbussen||0),0);const y2025=p._rows.reduce((sum,r)=>sum+(r.y2025||0),0);const y2024=p._rows.reduce((sum,r)=>sum+(r.y2024||0),0);const zoneLine=p._expansionZone?`<b>Expansion zone:</b> ${p._expansionZone} (${p._goNoGo||'-'})<br>`:'';const typeLine=p._futureSearch?`<b>Type:</b> ${p._futureSearch}<br>`:'';l.bindTooltip(`${zoneLine}${typeLine}<b>Postcode:</b> ${pcodes.join(', ')}<br><b>#2025:</b> ${Math.round(y2025).toLocaleString('nl-BE')}<br><b>#2024:</b> ${Math.round(y2024).toLocaleString('nl-BE')}<br><b>VF 2025 as B2B:</b> ${Math.round(p._vf2025B2B||0).toLocaleString('nl-BE')}<br><b>VF 2024 as B2B:</b> ${Math.round(p._vf2024B2B||0).toLocaleString('nl-BE')}`,{className:'regiontip',sticky:true});l.on({click(){const zoneDetail=p._expansionZone?`<br>Expansion zone: <strong>${p._expansionZone}</strong> (${p._goNoGo||'-'})<br>#2025 leads: ${Math.round(y2025).toLocaleString('nl-BE')}<br>VF 2025 as B2B: ${Math.round(p._vf2025B2B).toLocaleString('nl-BE')}<br>VF 2024 as B2B: ${Math.round(p._vf2024B2B).toLocaleString('nl-BE')}`:'';detail.innerHTML=`<strong>${fname(f)}</strong><br>Partner: ${partner}<br>Province: ${p._province||'-'}${p._partnerType?`<br>Type: ${p._partnerType}`:''}<br>Temp zone: <strong>${p._temp?'Yes':'No'}</strong><br>Postcodes: ${pcodes.length}<br>Postboxes: ${Math.round(p._boxes).toLocaleString('nl-BE')}${zoneDetail}<br><span class="muted">${pcodes.slice(0,28).join(', ')}${pcodes.length>28?' …':''}</span>`;
   if(expansionMode){
     const clickedZone=expansionMode==='all'?p._expansionZone:p._goZone;
     selectedZoneForResume=clickedZone||null;
@@ -2090,11 +2159,21 @@ const sat=document.getElementById('sat'),roadBtn=document.getElementById('road')
 (function(){
   const box=document.getElementById('expansionSummary');
   const collapseBtn=document.getElementById('esCollapseBtn');
+  const closeBtn=document.getElementById('esCloseBtn');
   if(!box||!collapseBtn)return;
   collapseBtn.addEventListener('click',()=>{
     box.classList.toggle('collapsed');
     collapseBtn.textContent=box.classList.contains('collapsed')?'Show':'Hide';
   });
+  if(closeBtn){
+    closeBtn.addEventListener('click',()=>{
+      selectedZoneForResume=null;
+      if(regionLayer)regionLayer.setStyle(style);
+      fitVisibleRegions();
+      updateExpansionSummary();
+      if(typeof renderZoneLegend==='function')renderZoneLegend();
+    });
+  }
 })();
 
 // Kick off the real data load immediately (in parallel with the splash screen),
