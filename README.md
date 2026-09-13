@@ -71,18 +71,23 @@ shared default everyone else sees.
 
 ## Applying Admin changes for every visitor
 
-The app's **Admin** panel (password `Admin123`) lets you reorder partners and merge duplicate
-partner names (e.g. "BREBO" + "BREBO INVEST" into one). Those changes are saved to your own
-browser only by default — a colleague opening the same link won't see them.
+The app's **Admin** panel (password `Admin123`) lets you reorder partners, merge duplicate
+partner names (e.g. "BREBO" + "BREBO INVEST" into one), and turn tabs on/off. Those changes are
+saved to your own browser only by default — a colleague opening the same link won't see them.
+
+**Enabled tabs**: the Partners, Province, Type and Expansion tabs can each be switched on or off
+from the top of the Admin panel. By default, Partners, Type and Expansion are on, and Province is
+off. Each tab's own selection always resets to "nothing selected" whenever you switch to it — tabs
+never affect each other, and the info panel always refreshes to match whichever tab is active.
 
 To make Admin changes apply to **everyone**:
 
-1. In the Admin panel, save your partner order and/or merges as usual (so they're active in your browser).
+1. In the Admin panel, save your partner order, merges, and/or tab settings as usual (so they're active in your browser).
 2. Click **"Download config.json"** at the bottom of the Admin panel — this exports exactly what
    you just saved.
 3. In this GitHub repo, replace `config.json` with the downloaded file, and push.
 4. Vercel redeploys automatically. From then on, every visitor (with no local changes of their
-   own) will see your saved order and merges by default.
+   own) will see your saved order, merges, and enabled tabs by default.
 
 `config.json` looks like this:
 
@@ -91,7 +96,8 @@ To make Admin changes apply to **everyone**:
   "partnerOrder": ["Some Partner", "Another Partner"],
   "partnerGroups": [
     { "name": "BREBO", "members": ["BREBO|", "BREBO INVEST|"] }
-  ]
+  ],
+  "tabSettings": { "partners": true, "province": false, "type": true, "expansion": true }
 }
 ```
 

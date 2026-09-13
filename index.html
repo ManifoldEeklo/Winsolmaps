@@ -261,7 +261,15 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
         <button id="adminCloseBtn" class="ghost" type="button">Close</button>
       </div>
 
-      <h3 class="admin-subhead">Merge partners</h3>
+      <h3 class="admin-subhead">Enabled tabs</h3>
+      <div class="hint" style="margin:0 0 10px">Turn tabs on or off for everyone. Partners and Reference cannot be hidden entirely if Partners is off, but you can hide Province, Type and Expansion individually.</div>
+      <div id="adminTabsList" class="admin-order-list" style="margin-bottom:10px"></div>
+      <div class="controls" style="justify-content:flex-end">
+        <button id="adminSaveTabsBtn" class="primary" type="button" style="width:auto;margin-top:0;padding:8px 16px">Save tabs</button>
+      </div>
+      <div id="adminTabsMsg" class="hint" style="margin-top:8px"></div>
+
+      <h3 class="admin-subhead" style="margin-top:22px">Merge partners</h3>
       <div class="hint" style="margin:0 0 10px">Combine multiple partner names into one — e.g. "BREBO" + "BREBO INVEST" — with an optional custom display name.</div>
       <div id="adminGroupsList" class="admin-order-list" style="margin-bottom:10px"></div>
       <div class="controls" style="justify-content:space-between">
@@ -1465,6 +1473,25 @@ function showPane(which){
     tabs[key].btn.setAttribute('aria-selected',active?'true':'false');
     tabs[key].pane.classList.toggle('hidden',!active);
   }
+  resetAllTabFilters();
+}
+function resetAllTabFilters(){
+  selectedPartners.clear();
+  selectedProvinces.clear();
+  selectedPartnerTypes.clear();
+  expansionMode=null;
+  selectedZoneForResume=null;
+  const legendEl=document.getElementById('legend'),provinceLegendEl=document.getElementById('provinceLegend'),typeLegendEl=document.getElementById('typeLegend');
+  if(legendEl)[...legendEl.children].forEach(x=>x.classList.remove('active'));
+  if(provinceLegendEl)[...provinceLegendEl.children].forEach(x=>x.classList.remove('active'));
+  if(typeLegendEl)[...typeLegendEl.children].forEach(x=>x.classList.remove('active'));
+  const zAllBtn=document.getElementById('zoneModeAllBtn'),zGoBtn=document.getElementById('zoneModeGoBtn');
+  if(zAllBtn){zAllBtn.classList.remove('active');zAllBtn.setAttribute('aria-pressed','false')}
+  if(zGoBtn){zGoBtn.classList.remove('active');zGoBtn.setAttribute('aria-pressed','false')}
+  if(typeof renderZoneLegend==='function')renderZoneLegend();
+  if(regionLayer){regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]})}
+  if(typeof updatePartnerSummary==='function')updatePartnerSummary();
+  if(typeof updateExpansionSummary==='function')updateExpansionSummary();
 }
 tabs.partners.btn.onclick=()=>showPane('partners');
 tabs.province.btn.onclick=()=>showPane('province');
@@ -1482,13 +1509,14 @@ let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),select
 // partner order/merges for every visitor. A person's own localStorage (set
 // via the Admin panel in this browser) always takes priority over it, so an
 // admin previewing changes sees them immediately before committing the file.
-let sharedConfig={partnerOrder:null,partnerGroups:null};
+let sharedConfig={partnerOrder:null,partnerGroups:null,tabSettings:null};
 try{
   const cfgRes=await fetch('./config.json',{cache:'no-store'});
   if(cfgRes.ok){
     const cfg=await cfgRes.json();
     if(Array.isArray(cfg.partnerOrder))sharedConfig.partnerOrder=cfg.partnerOrder;
     if(Array.isArray(cfg.partnerGroups))sharedConfig.partnerGroups=cfg.partnerGroups;
+    if(cfg.tabSettings&&typeof cfg.tabSettings==='object')sharedConfig.tabSettings=cfg.tabSettings;
   }
 }catch(e){/* config.json is optional — fine if it's missing (e.g. not committed yet, or opened locally) */}
 function loadPartnerGroups(){
@@ -1498,6 +1526,29 @@ function loadPartnerGroups(){
   }catch(e){}
   return sharedConfig.partnerGroups||[];
 }
+const TAB_SETTINGS_DEFAULT={partners:true,province:false,type:true,expansion:true};
+function loadTabSettings(){
+  let saved=null;
+  try{
+    const local=localStorage.getItem('winsol_tab_settings');
+    saved=local?JSON.parse(local):sharedConfig.tabSettings;
+  }catch(e){saved=sharedConfig.tabSettings}
+  return {...TAB_SETTINGS_DEFAULT,...(saved||{})};
+}
+let tabSettings=loadTabSettings();
+function applyTabSettings(){
+  const map={partners:'tabPartners',province:'tabProvince',type:'tabType',expansion:'tabExpansion'};
+  for(const key in map){
+    const btn=document.getElementById(map[key]);
+    if(btn)btn.style.display=(tabSettings[key]!==false)?'':'none';
+  }
+  const activeKey=Object.keys(tabs).find(k=>tabs[k]&&tabs[k].btn&&tabs[k].btn.classList.contains('active'));
+  if(activeKey&&map[activeKey]&&tabSettings[activeKey]===false){
+    const firstEnabled=['partners','province','type','expansion'].find(k=>tabSettings[k]!==false);
+    showPane(firstEnabled||'reference');
+  }
+}
+applyTabSettings();
 function buildCanonicalMap(groups){const m=new Map();for(const g of groups){const name=(g.name&&g.name.trim())||g.members[0];for(const member of g.members)m.set(member,name)}return m}
 let partnerGroups=loadPartnerGroups();
 let canonicalMap=buildCanonicalMap(partnerGroups);
@@ -1571,7 +1622,7 @@ function style(f){
   }
   return{color:'#fff',weight:on?1.05:.45,opacity:on?.95:.12,fillColor,fillOpacity:on?(hasCategory?.78:.18):.04};
 }
-function fitVisibleRegions(){const ls=[];regionLayer.eachLayer(l=>{if(l.feature&&visible(l.feature))ls.push(l)});if(ls.length){const g=L.featureGroup(ls);const extraRight=selectedPartners.size?300:40;const extraLeft=selectedZoneForResume?300:40;map.fitBounds(g.getBounds(),{paddingTopLeft:[extraLeft,40],paddingBottomRight:[extraRight,50]})}}
+function fitVisibleRegions(){if(!regionLayer)return;const ls=[];regionLayer.eachLayer(l=>{if(l.feature&&visible(l.feature))ls.push(l)});if(ls.length){const g=L.featureGroup(ls);const extraRight=selectedPartners.size?300:40;const extraLeft=selectedZoneForResume?300:40;map.fitBounds(g.getBounds(),{paddingTopLeft:[extraLeft,40],paddingBottomRight:[extraRight,50]})}}
 function partnerCardHTML(title,postboxes,y2025,isTotal){
   return `<div class="ps-card${isTotal?' ps-total':''}">`+
     `<div class="ps-title">${title}</div>`+
@@ -1612,9 +1663,10 @@ function updatePartnerSummary(){
   cardsEl.innerHTML=html;
   box.classList.remove('hidden');
 }
-function zoneCardHTML(title,postbussen,y2025,y2024,vf2025B2B,vf2024B2B){
+function zoneCardHTML(title,postcodeCount,postbussen,y2025,y2024,vf2025B2B,vf2024B2B){
   return `<div class="ps-card">`+
     `<div class="ps-title">${title}</div>`+
+    `<div class="ps-row"><span>Postcodes</span><strong>${postcodeCount.toLocaleString('nl-BE')}</strong></div>`+
     `<div class="ps-row"><span>Postbussen</span><strong>${Math.round(postbussen).toLocaleString('nl-BE')}</strong></div>`+
     `<div class="ps-row"><span>#2025 leads</span><strong>${Math.round(y2025).toLocaleString('nl-BE')}</strong></div>`+
     `<div class="ps-row"><span>#2024 leads</span><strong>${Math.round(y2024).toLocaleString('nl-BE')}</strong></div>`+
@@ -1634,7 +1686,7 @@ function zoneStats(zoneName){
     vf2025B2B+=p._vf2025B2B||0;
     vf2024B2B+=p._vf2024B2B||0;
   }
-  return {postbussen,y2025,y2024,vf2025B2B,vf2024B2B};
+  return {postcodeCount:feats.length,postbussen,y2025,y2024,vf2025B2B,vf2024B2B};
 }
 function updateExpansionSummary(){
   const box=document.getElementById('expansionSummary');
@@ -1643,9 +1695,45 @@ function updateExpansionSummary(){
   if(!box||!cardsEl)return;
   if(!selectedZoneForResume){box.classList.add('hidden');box.classList.remove('collapsed');const cb=document.getElementById('esCollapseBtn');if(cb)cb.textContent='Hide';cardsEl.innerHTML='';return}
   const s=zoneStats(selectedZoneForResume);
-  cardsEl.innerHTML=zoneCardHTML(selectedZoneForResume,s.postbussen,s.y2025,s.y2024,s.vf2025B2B,s.vf2024B2B);
+  cardsEl.innerHTML=zoneCardHTML(selectedZoneForResume,s.postcodeCount,s.postbussen,s.y2025,s.y2024,s.vf2025B2B,s.vf2024B2B);
   if(labelEl)labelEl.textContent=selectedZoneForResume;
   box.classList.remove('hidden');
+}
+function renderZoneLegend(){
+  const zl=document.getElementById('zoneLegend');
+  if(!zl)return;
+  const counts=new Map();
+  for(const f of municipalities){
+    const z=expansionMode==='all'?f.properties._expansionZone:(expansionMode==='go'?f.properties._goZone:null);
+    if(z)counts.set(z,(counts.get(z)||0)+1);
+  }
+  zl.innerHTML='';
+  if(!expansionMode){zl.innerHTML='<div class="muted">Choose "All" or "Go zones" above to see zones.</div>';return}
+  if(!counts.size){zl.innerHTML='<div class="muted">No zones found. Add \'Go or NoGo\' and \'Expansie\' columns to your reference list.</div>';return}
+  [...counts].sort((a,b)=>b[1]-a[1]).forEach(([z,n])=>{
+    const b=document.createElement('button');
+    b.innerHTML=`<span class="sw" style="background:${partnerColor(z,zoneIndex.get(z)||0)}"></span><span>${z}</span><span class="cnt">${n}</span>`;
+    const isActive=selectedZoneForResume===z;
+    if(isActive)b.classList.add('active');
+    b.setAttribute('aria-pressed',isActive?'true':'false');
+    b.addEventListener('click',()=>{
+      selectedZoneForResume=(selectedZoneForResume===z)?null:z;
+      if(regionLayer)regionLayer.setStyle(style);
+      fitVisibleRegions();updateExpansionSummary();renderZoneLegend();
+    });
+    zl.appendChild(b);
+  });
+}
+function setExpansionMode(mode){
+  expansionMode=(expansionMode===mode)?null:mode;
+  selectedZoneForResume=null;
+  const allBtn=document.getElementById('zoneModeAllBtn'),goBtn=document.getElementById('zoneModeGoBtn');
+  if(allBtn){allBtn.classList.toggle('active',expansionMode==='all');allBtn.setAttribute('aria-pressed',expansionMode==='all'?'true':'false')}
+  if(goBtn){goBtn.classList.toggle('active',expansionMode==='go');goBtn.setAttribute('aria-pressed',expansionMode==='go'?'true':'false')}
+  renderZoneLegend();
+  if(regionLayer)regionLayer.setStyle(style);
+  fitVisibleRegions();
+  updateExpansionSummary();
 }
 (function(){
   const overlay=document.getElementById('adminOverlay');
@@ -1669,6 +1757,9 @@ function updateExpansionSummary(){
   const groupsListEl=document.getElementById('adminGroupsList');
   const mergeMsg=document.getElementById('adminMergeMsg');
   let workingGroups=[];
+  const tabsListEl=document.getElementById('adminTabsList');
+  const tabsMsg=document.getElementById('adminTabsMsg');
+  let workingTabSettings={...tabSettings};
 
   function closeAdmin(){overlay.classList.add('hidden')}
   function tryLogin(){
@@ -1677,10 +1768,13 @@ function updateExpansionSummary(){
       orderView.classList.remove('hidden');
       saveMsg.textContent='';
       mergeMsg.textContent='';
+      tabsMsg.textContent='';
       workingOrder=getPartnerOrder(partnerCounts).map(([p])=>p);
       renderAdminList();
       workingGroups=partnerGroups.map(g=>({name:g.name,members:[...g.members]}));
       renderGroupsList();
+      workingTabSettings={...tabSettings};
+      renderTabsList();
     }else{
       loginErr.textContent='Incorrect password.';
     }
@@ -1751,6 +1845,27 @@ function updateExpansionSummary(){
       renderPartnerLegend();
     }catch(e){saveMsg.textContent='Could not save order.'}
   });
+  const TAB_LABELS={partners:'Partners',province:'Province',type:'Type',expansion:'Expansion'};
+  function renderTabsList(){
+    tabsListEl.innerHTML='';
+    for(const key of ['partners','province','type','expansion']){
+      const row=document.createElement('div');
+      row.className='admin-order-row';
+      const on=workingTabSettings[key]!==false;
+      row.innerHTML=`<span class="name">${TAB_LABELS[key]}</span><span class="arrows"><button type="button" class="mini">${on?'On':'Off'}</button></span>`;
+      const btn=row.querySelector('button');
+      btn.onclick=()=>{workingTabSettings[key]=!(workingTabSettings[key]!==false);renderTabsList()};
+      tabsListEl.appendChild(row);
+    }
+  }
+  document.getElementById('adminSaveTabsBtn').addEventListener('click',()=>{
+    try{
+      localStorage.setItem('winsol_tab_settings',JSON.stringify(workingTabSettings));
+      tabSettings={...workingTabSettings};
+      applyTabSettings();
+      tabsMsg.textContent='Saved — tabs updated for this browser.';
+    }catch(e){tabsMsg.textContent='Could not save tab settings.'}
+  });
   document.getElementById('adminNewGroupBtn').addEventListener('click',()=>{
     workingGroups.push({name:'',members:[]});
     renderGroupsList();
@@ -1776,7 +1891,9 @@ function updateExpansionSummary(){
       let order=[],groups=[];
       try{order=JSON.parse(localStorage.getItem('winsol_partner_order')||'[]')}catch(e){}
       try{groups=JSON.parse(localStorage.getItem('winsol_partner_groups')||'[]')}catch(e){}
-      const cfg={partnerOrder:order,partnerGroups:groups};
+      let tabs2={...TAB_SETTINGS_DEFAULT};
+      try{const localTabs=localStorage.getItem('winsol_tab_settings');if(localTabs)tabs2={...tabs2,...JSON.parse(localTabs)}}catch(e){}
+      const cfg={partnerOrder:order,partnerGroups:groups,tabSettings:tabs2};
       const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
@@ -1823,7 +1940,16 @@ for(let i=0;i<municipalities.length;i++){
  const isGo=goNoGo.toLowerCase()==='go';
  f.properties._partner=winner;f.properties._province=province;f.properties._partnerType=partnerType;f.properties._goNoGo=goNoGo;f.properties._expansionZone=expansionZone||null;f.properties._goZone=(isGo&&expansionZone)?expansionZone:null;f.properties._vf2025=found.reduce((s,r)=>s+(r.vf2025||0),0);f.properties._vf2024=found.reduce((s,r)=>s+(r.vf2024||0),0);f.properties._vf2023=found.reduce((s,r)=>s+(r.vf2023||0),0);f.properties._vf2025B2B=found.reduce((s,r)=>s+(r.vf2025B2B||0),0);f.properties._vf2024B2B=found.reduce((s,r)=>s+(r.vf2024B2B||0),0);f.properties._vf2023B2B=found.reduce((s,r)=>s+(r.vf2023B2B||0),0);f.properties._rows=found;f.properties._boxes=found.reduce((sum,r)=>sum+(r.postbussen||0),0);f.properties._temp=found.some(r=>r.temp===true)
 }
-regionLayer=L.geoJSON({type:'FeatureCollection',features:municipalities},{style,onEachFeature(f,l){const p=f.properties,partner=p._partner||'Not assigned';const pcodes=[...new Set(p._rows.map(r=>r.postcode))].sort();const boxes=p._rows.reduce((sum,r)=>sum+(r.postbussen||0),0);const y2025=p._rows.reduce((sum,r)=>sum+(r.y2025||0),0);const y2024=p._rows.reduce((sum,r)=>sum+(r.y2024||0),0);const zoneLine=p._expansionZone?`<b>Expansion zone:</b> ${p._expansionZone} (${p._goNoGo||'-'})<br>`:'';const typeLine=p._partnerType?`<b>Type:</b> ${p._partnerType}<br>`:'';l.bindTooltip(`${zoneLine}${typeLine}<b>Postcode:</b> ${pcodes.join(', ')}<br><b>#2025:</b> ${Math.round(y2025).toLocaleString('nl-BE')}<br><b>#2024:</b> ${Math.round(y2024).toLocaleString('nl-BE')}<br><b>VF 2025 as B2B:</b> ${Math.round(p._vf2025B2B||0).toLocaleString('nl-BE')}<br><b>VF 2024 as B2B:</b> ${Math.round(p._vf2024B2B||0).toLocaleString('nl-BE')}`,{className:'regiontip',sticky:true});l.on({click(){const zoneDetail=p._expansionZone?`<br>Expansion zone: <strong>${p._expansionZone}</strong> (${p._goNoGo||'-'})<br>#2025 leads: ${Math.round(y2025).toLocaleString('nl-BE')}<br>VF 2025 as B2B: ${Math.round(p._vf2025B2B).toLocaleString('nl-BE')}<br>VF 2024 as B2B: ${Math.round(p._vf2024B2B).toLocaleString('nl-BE')}`:'';detail.innerHTML=`<strong>${fname(f)}</strong><br>Partner: ${partner}<br>Province: ${p._province||'-'}${p._partnerType?`<br>Type: ${p._partnerType}`:''}<br>Temp zone: <strong>${p._temp?'Yes':'No'}</strong><br>Postcodes: ${pcodes.length}<br>Postboxes: ${Math.round(p._boxes).toLocaleString('nl-BE')}${zoneDetail}<br><span class="muted">${pcodes.slice(0,28).join(', ')}${pcodes.length>28?' …':''}</span>`},mouseover:e=>e.target.setStyle({weight:2,fillOpacity:.9}),mouseout:e=>regionLayer.resetStyle(e.target)})}}).addTo(map);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});
+regionLayer=L.geoJSON({type:'FeatureCollection',features:municipalities},{style,onEachFeature(f,l){const p=f.properties,partner=p._partner||'Not assigned';const pcodes=[...new Set(p._rows.map(r=>r.postcode))].sort();const boxes=p._rows.reduce((sum,r)=>sum+(r.postbussen||0),0);const y2025=p._rows.reduce((sum,r)=>sum+(r.y2025||0),0);const y2024=p._rows.reduce((sum,r)=>sum+(r.y2024||0),0);const zoneLine=p._expansionZone?`<b>Expansion zone:</b> ${p._expansionZone} (${p._goNoGo||'-'})<br>`:'';const typeLine=p._partnerType?`<b>Type:</b> ${p._partnerType}<br>`:'';l.bindTooltip(`${zoneLine}${typeLine}<b>Postcode:</b> ${pcodes.join(', ')}<br><b>#2025:</b> ${Math.round(y2025).toLocaleString('nl-BE')}<br><b>#2024:</b> ${Math.round(y2024).toLocaleString('nl-BE')}<br><b>VF 2025 as B2B:</b> ${Math.round(p._vf2025B2B||0).toLocaleString('nl-BE')}<br><b>VF 2024 as B2B:</b> ${Math.round(p._vf2024B2B||0).toLocaleString('nl-BE')}`,{className:'regiontip',sticky:true});l.on({click(){const zoneDetail=p._expansionZone?`<br>Expansion zone: <strong>${p._expansionZone}</strong> (${p._goNoGo||'-'})<br>#2025 leads: ${Math.round(y2025).toLocaleString('nl-BE')}<br>VF 2025 as B2B: ${Math.round(p._vf2025B2B).toLocaleString('nl-BE')}<br>VF 2024 as B2B: ${Math.round(p._vf2024B2B).toLocaleString('nl-BE')}`:'';detail.innerHTML=`<strong>${fname(f)}</strong><br>Partner: ${partner}<br>Province: ${p._province||'-'}${p._partnerType?`<br>Type: ${p._partnerType}`:''}<br>Temp zone: <strong>${p._temp?'Yes':'No'}</strong><br>Postcodes: ${pcodes.length}<br>Postboxes: ${Math.round(p._boxes).toLocaleString('nl-BE')}${zoneDetail}<br><span class="muted">${pcodes.slice(0,28).join(', ')}${pcodes.length>28?' …':''}</span>`;
+  if(expansionMode){
+    const clickedZone=expansionMode==='all'?p._expansionZone:p._goZone;
+    selectedZoneForResume=clickedZone||null;
+    if(regionLayer)regionLayer.setStyle(style);
+    fitVisibleRegions();
+    updateExpansionSummary();
+    renderZoneLegend();
+  }
+},mouseover:e=>e.target.setStyle({weight:2,fillOpacity:.9}),mouseout:e=>regionLayer.resetStyle(e.target)})}}).addTo(map);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});
 const provinceCounts=new Map();for(const f of municipalities){const pr=f.properties._province;if(pr)provinceCounts.set(pr,(provinceCounts.get(pr)||0)+1)}
 provinceLegend.innerHTML='';const provinceButtons=new Map();[...provinceCounts].sort((a,b)=>a[0].localeCompare(b[0],'nl')).forEach(([pr,n])=>{const b=document.createElement('button');b.innerHTML=`<span class="sw" style="background:#8b96a3"></span><span>${pr}</span><span class="cnt">${n}</span>`;b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>{if(selectedProvinces.has(pr)){selectedProvinces.delete(pr);b.classList.remove('active');b.setAttribute('aria-pressed','false')}else{selectedProvinces.add(pr);b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions()});provinceButtons.set(pr,b);provinceLegend.appendChild(b)});if(!provinceCounts.size)provinceLegend.innerHTML='<div class="muted">No provinces found.</div>';
 document.getElementById('selectAllProvinces').onclick=()=>{selectedProvinces=new Set(provinceCounts.keys());for(const [pr,b] of provinceButtons){b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions()};
@@ -1834,39 +1960,6 @@ document.getElementById('selectAllTypes').onclick=()=>{selectedPartnerTypes=new 
 document.getElementById('clearTypes').onclick=()=>{selectedPartnerTypes.clear();for(const b of typeButtons.values()){b.classList.remove('active');b.setAttribute('aria-pressed','false')}regionLayer.setStyle(style);fitVisibleRegions()};
 const allZoneNames=new Set();for(const f of municipalities){const z=f.properties._expansionZone;if(z)allZoneNames.add(z)}
 zoneIndex=new Map();[...allZoneNames].sort((a,b)=>a.localeCompare(b,'nl')).forEach((z,i)=>zoneIndex.set(z,i));
-function renderZoneLegend(){
-  const counts=new Map();
-  for(const f of municipalities){
-    const z=expansionMode==='all'?f.properties._expansionZone:(expansionMode==='go'?f.properties._goZone:null);
-    if(z)counts.set(z,(counts.get(z)||0)+1);
-  }
-  zoneLegend.innerHTML='';
-  if(!expansionMode){zoneLegend.innerHTML='<div class="muted">Choose "All" or "Go zones" above to see zones.</div>';return}
-  if(!counts.size){zoneLegend.innerHTML='<div class="muted">No zones found. Add \'Go or NoGo\' and \'Expansie\' columns to your reference list.</div>';return}
-  [...counts].sort((a,b)=>b[1]-a[1]).forEach(([z,n])=>{
-    const b=document.createElement('button');
-    b.innerHTML=`<span class="sw" style="background:${partnerColor(z,zoneIndex.get(z)||0)}"></span><span>${z}</span><span class="cnt">${n}</span>`;
-    const isActive=selectedZoneForResume===z;
-    if(isActive)b.classList.add('active');
-    b.setAttribute('aria-pressed',isActive?'true':'false');
-    b.addEventListener('click',()=>{
-      selectedZoneForResume=(selectedZoneForResume===z)?null:z;
-      regionLayer.setStyle(style);fitVisibleRegions();updateExpansionSummary();renderZoneLegend();
-    });
-    zoneLegend.appendChild(b);
-  });
-}
-function setExpansionMode(mode){
-  expansionMode=(expansionMode===mode)?null:mode;
-  selectedZoneForResume=null;
-  const allBtn=document.getElementById('zoneModeAllBtn'),goBtn=document.getElementById('zoneModeGoBtn');
-  allBtn.classList.toggle('active',expansionMode==='all');allBtn.setAttribute('aria-pressed',expansionMode==='all'?'true':'false');
-  goBtn.classList.toggle('active',expansionMode==='go');goBtn.setAttribute('aria-pressed',expansionMode==='go'?'true':'false');
-  renderZoneLegend();
-  regionLayer.setStyle(style);
-  fitVisibleRegions();
-  updateExpansionSummary();
-}
 document.getElementById('zoneModeAllBtn').onclick=()=>setExpansionMode('all');
 document.getElementById('zoneModeGoBtn').onclick=()=>setExpansionMode('go');
 renderZoneLegend();
