@@ -229,13 +229,13 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
           <button id="zoneModeAllBtn" class="mini" type="button" aria-pressed="false">All</button>
           <button id="zoneModeGoBtn" class="mini" type="button" aria-pressed="false">Go zones</button>
         </div>
-        <div class="hint" style="margin:0 0 10px"><strong>All</strong> colors every postcode by its Expansie zone. <strong>Go zones</strong> colors only postcodes marked "Go". Tap a zone below to see its resumé — tap another to switch to it.</div>
+        <div class="hint" style="margin:0 0 10px"><strong>All</strong> colors every postcode by its Expansie zone. <strong>Go zones</strong> colors only postcodes marked "Go". Click a region on the map to see its zone's resumé.</div>
         <div id="futureSearchSection" class="hidden" style="margin-bottom:14px">
           <div class="topline"><span class="pane-label">Filter Go zones by Future search</span><div class="controls"><button id="selectAllFutureSearch" class="mini" type="button">All</button><button id="clearFutureSearch" class="mini" type="button">Clear</button></div></div>
           <div class="hint" style="margin:8px 0 10px">Regions stay colored by their Expansie zone — this only narrows which Go postcodes are shown.</div>
           <div id="futureSearchLegend" class="legend"></div>
         </div>
-        <div id="zoneLegend" class="legend"><div class="muted">Choose "All" or "Go zones" above to see zones.</div></div>
+        <div id="zoneLegend" class="legend hidden"><div class="muted">Choose "All" or "Go zones" above to see zones.</div></div>
       </div>
       <div id="referencePane" class="tab-pane hidden">
         <div class="drop"><input id="fileInput" type="file" accept=".xls,.xlsx,.csv" /><div class="hint">Required columns: postcode + partner/name. Municipality, province, postboxes, partner type and yearly values are optional.<br><br><strong>Current behavior:</strong> this HTML contains a built-in reference list. Uploading a new file replaces the active reference and stores it in this browser.</div></div>
