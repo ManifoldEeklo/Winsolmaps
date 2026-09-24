@@ -23,6 +23,9 @@ button,input{font:inherit}.hidden{display:none!important}
 .field{width:100%;border:1px solid var(--line);border-radius:10px;background:#0b1118;color:white;padding:12px 14px;outline:none}.field:focus{border-color:#5e7994}
 #app{height:100vh;display:grid;grid-template-columns:340px 1fr}.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:18px;overflow:auto}.topline{display:flex;justify-content:space-between;gap:12px;align-items:center}.ghost{background:transparent;color:#c7d2dc;border:1px solid #34475d;border-radius:9px;padding:8px 10px;cursor:pointer}.section{padding:18px 0;border-top:1px solid #223144}.section:first-of-type{border-top:0}.section h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#8fa0b2;margin:0 0 12px}.drop{border:1px dashed #425872;border-radius:12px;padding:16px;background:#0d151f}.drop input{width:100%}.hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:9px}.status{margin-top:10px;padding:10px 12px;border-radius:9px;background:#0c1721;color:#b7c5d2;font-size:13px}.status.ok{background:#0d2a20;color:#9be2c1}.status.bad{background:#32191b;color:#f0aaaa}.controls{display:flex;gap:8px;flex-wrap:wrap}.mini{background:#182535;color:#dce5ed;border:1px solid #32485f;border-radius:8px;padding:8px 10px;cursor:pointer}.mini.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .legend{display:grid;gap:5px}.legend button{width:100%;display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid transparent;border-radius:8px;background:transparent;color:#d9e2ea;padding:7px 8px;cursor:pointer}.legend button:hover,.legend button.active{background:#1a2634;border-color:#38516c}.sw{width:12px;height:12px;border-radius:3px}.cnt{font-size:12px;color:#8193a5}.detail{font-size:13px;line-height:1.55;color:#d0dae3}.muted{color:#8495a6}.mapwrap{position:relative;min-width:0}#map{position:absolute;inset:0}
+.heatmap-legend{display:flex;flex-direction:column;gap:8px}
+.heatmap-bar{height:16px;border-radius:8px;background:linear-gradient(90deg, rgb(26,42,74) 0%, rgb(35,120,140) 25%, rgb(240,210,80) 50%, rgb(240,140,60) 75%, rgb(210,40,50) 100%);border:1px solid rgba(255,255,255,.12)}
+.heatmap-scale{display:flex;justify-content:space-between;font-size:12px;color:#8fa0b2}
 .partner-summary{position:absolute;z-index:500;right:20px;top:18px;width:min(300px,calc(100% - 40px));display:flex;flex-direction:column;gap:9px;max-height:calc(100% - 36px);overflow-y:auto}
 .expansion-summary{right:auto;left:20px}
 .ps-close-btn{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);color:#c9d3dd;border:1px solid rgba(255,255,255,.18);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:5;padding:0}
@@ -206,6 +209,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
         <button id="tabProvince" class="tab-btn" type="button" role="tab" aria-selected="false">Province</button>
         <button id="tabType" class="tab-btn" type="button" role="tab" aria-selected="false">Type</button>
         <button id="tabExpansion" class="tab-btn" type="button" role="tab" aria-selected="false">Expansion</button>
+        <button id="tabRevenue" class="tab-btn" type="button" role="tab" aria-selected="false">Revenue</button>
         <button id="tabReference" class="tab-btn" type="button" role="tab" aria-selected="false">Reference</button>
       </div>
       <div id="partnersPane" class="tab-pane">
@@ -236,6 +240,18 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
           <div id="futureSearchLegend" class="legend"></div>
         </div>
         <div id="zoneLegend" class="legend hidden"><div class="muted">Choose "All" or "Go zones" above to see zones.</div></div>
+      </div>
+      <div id="revenuePane" class="tab-pane hidden">
+        <div class="topline"><span class="pane-label">Revenue heatmap</span></div>
+        <div class="controls" style="margin:8px 0 10px">
+          <button id="heatmapYear2025Btn" class="mini" type="button" aria-pressed="false">VF 2025</button>
+          <button id="heatmapYear2024Btn" class="mini" type="button" aria-pressed="false">VF 2024</button>
+        </div>
+        <div class="hint" style="margin:0 0 14px">Every postcode is shown, colored by its own <strong>VF (B2B)</strong> revenue — cooler colors mean lower revenue, hotter colors mean higher. Switch years above.</div>
+        <div id="heatmapLegend" class="heatmap-legend">
+          <div class="heatmap-bar"></div>
+          <div class="heatmap-scale"><span>0</span><span id="heatmapMaxLabel">0</span></div>
+        </div>
       </div>
       <div id="referencePane" class="tab-pane hidden">
         <div class="drop"><input id="fileInput" type="file" accept=".xls,.xlsx,.csv" /><div class="hint">Required columns: postcode + partner/name. Municipality, province, postboxes, partner type and yearly values are optional.<br><br><strong>Current behavior:</strong> this HTML contains a built-in reference list. Uploading a new file replaces the active reference and stores it in this browser.</div></div>
@@ -1471,6 +1487,7 @@ const tabs={
   province:{btn:document.getElementById('tabProvince'),pane:document.getElementById('provincePane')},
   type:{btn:document.getElementById('tabType'),pane:document.getElementById('typePane')},
   expansion:{btn:document.getElementById('tabExpansion'),pane:document.getElementById('expansionPane')},
+  revenue:{btn:document.getElementById('tabRevenue'),pane:document.getElementById('revenuePane')},
   reference:{btn:document.getElementById('tabReference'),pane:document.getElementById('referencePane')}
 };
 function showPane(which){
@@ -1481,6 +1498,7 @@ function showPane(which){
     tabs[key].pane.classList.toggle('hidden',!active);
   }
   resetAllTabFilters();
+  if(which==='revenue')setHeatmapYear('2025');
 }
 function resetAllTabFilters(){
   selectedPartners.clear();
@@ -1489,6 +1507,7 @@ function resetAllTabFilters(){
   expansionMode=null;
   selectedZoneForResume=null;
   selectedFutureSearch.clear();
+  heatmapMode=null;
   const legendEl=document.getElementById('legend'),provinceLegendEl=document.getElementById('provinceLegend'),typeLegendEl=document.getElementById('typeLegend');
   if(legendEl)[...legendEl.children].forEach(x=>x.classList.remove('active'));
   if(provinceLegendEl)[...provinceLegendEl.children].forEach(x=>x.classList.remove('active'));
@@ -1496,6 +1515,9 @@ function resetAllTabFilters(){
   const zAllBtn=document.getElementById('zoneModeAllBtn'),zGoBtn=document.getElementById('zoneModeGoBtn');
   if(zAllBtn){zAllBtn.classList.remove('active');zAllBtn.setAttribute('aria-pressed','false')}
   if(zGoBtn){zGoBtn.classList.remove('active');zGoBtn.setAttribute('aria-pressed','false')}
+  const hy25=document.getElementById('heatmapYear2025Btn'),hy24=document.getElementById('heatmapYear2024Btn');
+  if(hy25){hy25.classList.remove('active');hy25.setAttribute('aria-pressed','false')}
+  if(hy24){hy24.classList.remove('active');hy24.setAttribute('aria-pressed','false')}
   if(typeof renderZoneLegend==='function')renderZoneLegend();
   if(typeof renderFutureSearchLegend==='function')renderFutureSearchLegend();
   if(regionLayer){regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]})}
@@ -1506,6 +1528,7 @@ tabs.partners.btn.onclick=()=>showPane('partners');
 tabs.province.btn.onclick=()=>showPane('province');
 tabs.type.btn.onclick=()=>showPane('type');
 tabs.expansion.btn.onclick=()=>showPane('expansion');
+tabs.revenue.btn.onclick=()=>showPane('revenue');
 tabs.reference.btn.onclick=()=>showPane('reference');
 
 const map=L.map('map',{zoomControl:false,attributionControl:false,minZoom:7,maxZoom:17,preferCanvas:true}).setView([50.72,4.62],8);
@@ -1513,7 +1536,7 @@ window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 const road=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});imagery.addTo(map);labels.addTo(map);
-let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
+let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,heatmapMax2025=0,heatmapMax2024=0,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
 // Shared settings: config.json (if present in the repo) provides the default
 // partner order/merges for every visitor. A person's own localStorage (set
 // via the Admin panel in this browser) always takes priority over it, so an
@@ -1535,7 +1558,7 @@ function loadPartnerGroups(){
   }catch(e){}
   return sharedConfig.partnerGroups||[];
 }
-const TAB_SETTINGS_DEFAULT={partners:true,province:false,type:true,expansion:true};
+const TAB_SETTINGS_DEFAULT={partners:true,province:false,type:true,expansion:true,revenue:true};
 function loadTabSettings(){
   let saved=null;
   try{
@@ -1546,14 +1569,14 @@ function loadTabSettings(){
 }
 let tabSettings=loadTabSettings();
 function applyTabSettings(){
-  const map={partners:'tabPartners',province:'tabProvince',type:'tabType',expansion:'tabExpansion'};
+  const map={partners:'tabPartners',province:'tabProvince',type:'tabType',expansion:'tabExpansion',revenue:'tabRevenue'};
   for(const key in map){
     const btn=document.getElementById(map[key]);
     if(btn)btn.style.display=(tabSettings[key]!==false)?'':'none';
   }
   const activeKey=Object.keys(tabs).find(k=>tabs[k]&&tabs[k].btn&&tabs[k].btn.classList.contains('active'));
   if(activeKey&&map[activeKey]&&tabSettings[activeKey]===false){
-    const firstEnabled=['partners','province','type','expansion'].find(k=>tabSettings[k]!==false);
+    const firstEnabled=['partners','province','type','expansion','revenue'].find(k=>tabSettings[k]!==false);
     showPane(firstEnabled||'reference');
   }
 }
@@ -1610,7 +1633,9 @@ function renderPartnerLegend(){
   document.getElementById('selectAllPartners').onclick=()=>{selectedPartners=new Set(counts.keys());for(const [p,b] of buttons){b.classList.add('active');b.setAttribute('aria-pressed','true')}regionLayer.setStyle(style);fitVisibleRegions();updatePartnerSummary()};
   document.getElementById('clearPartners').onclick=()=>{selectedPartners.clear();for(const b of buttons.values()){b.classList.remove('active');b.setAttribute('aria-pressed','false')}regionLayer.setStyle(style);fitVisibleRegions();updatePartnerSummary()};
 }
-function visible(f){const p=f.properties._partner,pr=f.properties._province,pt=f.properties._partnerType;if(tempOnly&&!f.properties._temp)return false;if(selectedPartners.size&&(!p||!selectedPartners.has(p)))return false;if(selectedProvinces.size&&(!pr||!selectedProvinces.has(pr)))return false;if(selectedPartnerTypes.size&&(!pt||!selectedPartnerTypes.has(pt)))return false;
+function visible(f){
+  if(heatmapMode)return true;
+  const p=f.properties._partner,pr=f.properties._province,pt=f.properties._partnerType;if(tempOnly&&!f.properties._temp)return false;if(selectedPartners.size&&(!p||!selectedPartners.has(p)))return false;if(selectedProvinces.size&&(!pr||!selectedProvinces.has(pr)))return false;if(selectedPartnerTypes.size&&(!pt||!selectedPartnerTypes.has(pt)))return false;
   if(expansionMode){
     const zoneProp=expansionMode==='all'?f.properties._expansionZone:f.properties._goZone;
     if(selectedZoneForResume){if(zoneProp!==selectedZoneForResume)return false}
@@ -1619,10 +1644,29 @@ function visible(f){const p=f.properties._partner,pr=f.properties._province,pt=f
   }
   if(!q)return true;const ss=q.toLowerCase();return (p||'').toLowerCase().includes(ss)||(pr||'').toLowerCase().includes(ss)||fname(f).toLowerCase().includes(ss)||f.properties._rows.some(r=>r.postcode.includes(ss))}
 function isConceptStore(f){const t=(f.properties._partnerType||'').toLowerCase().replace(/[\s_-]+/g,'');return t.includes('winsolconceptstore')}
+function heatColor(t){
+  const stops=[[0,[26,42,74]],[0.25,[35,120,140]],[0.5,[240,210,80]],[0.75,[240,140,60]],[1,[210,40,50]]];
+  t=Math.max(0,Math.min(1,t));
+  for(let i=0;i<stops.length-1;i++){
+    const [t0,c0]=stops[i],[t1,c1]=stops[i+1];
+    if(t>=t0&&t<=t1){
+      const f2=(t1===t0)?0:(t-t0)/(t1-t0);
+      const r=Math.round(c0[0]+(c1[0]-c0[0])*f2),g=Math.round(c0[1]+(c1[1]-c0[1])*f2),b=Math.round(c0[2]+(c1[2]-c0[2])*f2);
+      return `rgb(${r},${g},${b})`;
+    }
+  }
+  const last=stops[stops.length-1][1];return `rgb(${last[0]},${last[1]},${last[2]})`;
+}
 function style(f){
   const on=visible(f),p=f.properties._partner;
   let fillColor,hasCategory;
-  if(expansionMode){
+  if(heatmapMode){
+    const val=heatmapMode==='2024'?(f.properties._vf2024B2B||0):(f.properties._vf2025B2B||0);
+    const max=heatmapMode==='2024'?heatmapMax2024:heatmapMax2025;
+    const t=max>0?val/max:0;
+    fillColor=heatColor(t);
+    hasCategory=true;
+  }else if(expansionMode){
     const zoneProp=expansionMode==='all'?f.properties._expansionZone:f.properties._goZone;
     fillColor=zoneProp?partnerColor(zoneProp,zoneIndex.get(zoneProp)||0):'#6f7882';
     hasCategory=!!zoneProp;
@@ -1802,6 +1846,23 @@ function setExpansionMode(mode){
   fitVisibleRegions();
   updateExpansionSummary();
 }
+function renderHeatmapLegend(){
+  const label=document.getElementById('heatmapMaxLabel');
+  if(!label)return;
+  const max=heatmapMode==='2024'?heatmapMax2024:heatmapMax2025;
+  label.textContent=Math.round(max).toLocaleString('nl-BE');
+}
+function setHeatmapYear(year){
+  heatmapMode=year;
+  const b25=document.getElementById('heatmapYear2025Btn'),b24=document.getElementById('heatmapYear2024Btn');
+  if(b25){b25.classList.toggle('active',year==='2025');b25.setAttribute('aria-pressed',year==='2025'?'true':'false')}
+  if(b24){b24.classList.toggle('active',year==='2024');b24.setAttribute('aria-pressed',year==='2024'?'true':'false')}
+  renderHeatmapLegend();
+  if(regionLayer)regionLayer.setStyle(style);
+  if(regionLayer)map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});
+}
+document.getElementById('heatmapYear2025Btn').onclick=()=>setHeatmapYear('2025');
+document.getElementById('heatmapYear2024Btn').onclick=()=>setHeatmapYear('2024');
 (function(){
   const overlay=document.getElementById('adminOverlay');
   const loginView=document.getElementById('adminLoginView');
@@ -1912,10 +1973,10 @@ function setExpansionMode(mode){
       renderPartnerLegend();
     }catch(e){saveMsg.textContent='Could not save order.'}
   });
-  const TAB_LABELS={partners:'Partners',province:'Province',type:'Type',expansion:'Expansion'};
+  const TAB_LABELS={partners:'Partners',province:'Province',type:'Type',expansion:'Expansion',revenue:'Revenue'};
   function renderTabsList(){
     tabsListEl.innerHTML='';
-    for(const key of ['partners','province','type','expansion']){
+    for(const key of ['partners','province','type','expansion','revenue']){
       const row=document.createElement('div');
       row.className='admin-order-row';
       const on=workingTabSettings[key]!==false;
@@ -2032,6 +2093,8 @@ zoneIndex=new Map();[...allZoneNames].sort((a,b)=>a.localeCompare(b,'nl')).forEa
 document.getElementById('zoneModeAllBtn').onclick=()=>setExpansionMode('all');
 document.getElementById('zoneModeGoBtn').onclick=()=>setExpansionMode('go');
 renderZoneLegend();
+heatmapMax2025=0;heatmapMax2024=0;for(const f of municipalities){heatmapMax2025=Math.max(heatmapMax2025,f.properties._vf2025B2B||0);heatmapMax2024=Math.max(heatmapMax2024,f.properties._vf2024B2B||0)}
+renderHeatmapLegend();
 partnerCounts=new Map();for(const f of municipalities){const p=f.properties._partner;if(p)partnerCounts.set(p,(partnerCounts.get(p)||0)+1)}
 renderPartnerLegend();
 document.getElementById('tempZones').onclick=()=>{tempOnly=!tempOnly;const b=document.getElementById('tempZones');b.classList.toggle('active',tempOnly);b.setAttribute('aria-pressed',tempOnly?'true':'false');regionLayer.setStyle(style);if(tempOnly){const visibleLayers=[];regionLayer.eachLayer(l=>{if(l.feature?.properties?._temp&&visible(l.feature))visibleLayers.push(l)});if(visibleLayers.length){const g=L.featureGroup(visibleLayers);map.fitBounds(g.getBounds(),{padding:[30,30]})}}};
