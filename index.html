@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-<title>Winsol Territory Map — build revenue-tab-01</title>
+<title>Winsol Territory Map — build heatmap-gradient-01</title>
 <meta name="theme-color" content="#0b1118" />
 <meta name="color-scheme" content="dark" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -200,7 +200,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
 <section id="app">
   <aside class="sidebar">
     <div class="topline"><div class="brand">WINSOL <span>MAPS</span></div></div>
-    <div style="font-size:10px;color:#5a6b7d;letter-spacing:.05em;margin:-8px 0 8px">build revenue-tab-01</div>
+    <div style="font-size:10px;color:#5a6b7d;letter-spacing:.05em;margin:-8px 0 8px">build heatmap-gradient-01</div>
     <div class="section"><h3>Map</h3><div class="controls"><button id="sat" class="mini active">Satellite</button><button id="road" class="mini">Road</button><button id="tempZones" class="mini" type="button" aria-pressed="false">Temp zones</button><button id="reset" class="mini">All Belgium</button></div><div class="hint">Use <strong>Temp zones</strong> to show only areas marked <strong>Temp = 1</strong> in the active reference list.</div></div>
     <div class="section"><h3>Search</h3><input id="search" class="field" placeholder="partner, municipality or postcode" /></div>
     <div class="section">
@@ -318,6 +318,7 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 var PostalCodesCoordinates = {
@@ -1497,7 +1498,6 @@ function showPane(which){
   resetAllTabFilters();
   if(which==='revenue'){
     revenueMode=true;
-    if(revenueBubbleLayer&&!map.hasLayer(revenueBubbleLayer))revenueBubbleLayer.addTo(map);
     if(typeof renderRevenueLegend==='function')renderRevenueLegend();
     if(regionLayer){regionLayer.setStyle(style);fitVisibleRegions()}
     setHeatmapYear('2025');
@@ -1513,7 +1513,7 @@ function resetAllTabFilters(){
   heatmapMode=null;
   revenueMode=false;
   selectedRevenuePartners.clear();
-  if(revenueBubbleLayer){revenueBubbleLayer.clearLayers();if(map.hasLayer(revenueBubbleLayer))map.removeLayer(revenueBubbleLayer)}
+  if(revenueHeatLayer){map.removeLayer(revenueHeatLayer);revenueHeatLayer=null}
   const legendEl=document.getElementById('legend'),provinceLegendEl=document.getElementById('provinceLegend'),typeLegendEl=document.getElementById('typeLegend');
   if(legendEl)[...legendEl.children].forEach(x=>x.classList.remove('active'));
   if(provinceLegendEl)[...provinceLegendEl.children].forEach(x=>x.classList.remove('active'));
@@ -1543,8 +1543,7 @@ window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 const road=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});imagery.addTo(map);labels.addTo(map);
-let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,revenueMode=false,selectedRevenuePartners=new Set(),revenueBubbleLayer=null,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
-revenueBubbleLayer=L.layerGroup();
+let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,revenueMode=false,selectedRevenuePartners=new Set(),revenueHeatLayer=null,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
 const REVENUE_PARTNERS=['Winsol Izegem','Winsol Knokke-Heist','Winsol Oostende','Winsol SDW'];
 // Shared settings: config.json (if present in the repo) provides the default
 // partner order/merges for every visitor. A person's own localStorage (set
@@ -1865,8 +1864,7 @@ function renderRevenueLegend(){
 document.getElementById('selectAllRevenue').onclick=()=>{selectedRevenuePartners=new Set(REVENUE_PARTNERS);renderRevenueLegend();if(regionLayer)regionLayer.setStyle(style);fitVisibleRegions();updateRevenueHeatmap()};
 document.getElementById('clearRevenue').onclick=()=>{selectedRevenuePartners.clear();renderRevenueLegend();if(regionLayer)regionLayer.setStyle(style);fitVisibleRegions();updateRevenueHeatmap()};
 function updateRevenueHeatmap(){
-  if(!revenueBubbleLayer)return;
-  revenueBubbleLayer.clearLayers();
+  if(revenueHeatLayer){map.removeLayer(revenueHeatLayer);revenueHeatLayer=null}
   if(!revenueMode)return;
   const year=heatmapMode==='2024'?'2024':'2025';
   const activePartners=selectedRevenuePartners.size?selectedRevenuePartners:new Set(REVENUE_PARTNERS);
@@ -1876,16 +1874,17 @@ function updateRevenueHeatmap(){
     if(!activePartners.has(r.partner))continue;
     const val=year==='2024'?(r.vf2024B2B||0):(r.vf2025B2B||0);
     if(val>maxVal)maxVal=val;
-    points.push({lat:r.lat,lng:r.lng,val,postcode:r.postcode,partner:r.partner});
+    if(val>0)points.push([r.lat,r.lng,val]);
   }
-  const minR=4,maxR=26;
-  for(const p of points){
-    const t=maxVal>0?p.val/maxVal:0;
-    const radius=minR+(maxR-minR)*Math.sqrt(t);
-    L.circleMarker([p.lat,p.lng],{radius,color:'#111',weight:1,fillColor:'#FFC72C',fillOpacity:0.55,pane:'markerPane'})
-      .bindTooltip(`<b>${p.partner}</b><br>Postcode: ${p.postcode}<br>VF ${year} (B2B): ${Math.round(p.val).toLocaleString('nl-BE')}`,{className:'regiontip'})
-      .addTo(revenueBubbleLayer);
-  }
+  if(!points.length||typeof L.heatLayer!=='function')return;
+  revenueHeatLayer=L.heatLayer(points,{
+    radius:38,
+    blur:28,
+    maxZoom:14,
+    max:maxVal||1,
+    minOpacity:0.35,
+    gradient:{0.0:'#1b8a3a',0.35:'#7cc142',0.55:'#f4e04d',0.75:'#f39c2d',1.0:'#e0332f'}
+  }).addTo(map);
 }
 function setHeatmapYear(year){
   heatmapMode=year;
