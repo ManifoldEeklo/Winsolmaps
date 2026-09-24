@@ -26,6 +26,13 @@ button,input{font:inherit}.hidden{display:none!important}
 .heatmap-legend{display:flex;flex-direction:column;gap:8px}
 .heatmap-bar{height:16px;border-radius:8px;background:linear-gradient(90deg, rgb(26,42,74) 0%, rgb(35,120,140) 25%, rgb(240,210,80) 50%, rgb(240,140,60) 75%, rgb(210,40,50) 100%);border:1px solid rgba(255,255,255,.12)}
 .heatmap-scale{display:flex;justify-content:space-between;font-size:12px;color:#8fa0b2}
+.slider-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.slider-label{font-size:12.5px;font-weight:700;color:#c9d3dd}
+.slider-value{font-size:12px;color:#8fa0b2;font-variant-numeric:tabular-nums}
+input.slider{width:100%;appearance:none;-webkit-appearance:none;height:6px;border-radius:3px;background:#1e2c3d;outline:none;margin:0}
+input.slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #0b1118}
+input.slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #0b1118}
+#map.hide-region-tooltips .leaflet-tooltip{display:none!important}
 .partner-summary{position:absolute;z-index:500;right:20px;top:18px;width:min(300px,calc(100% - 40px));display:flex;flex-direction:column;gap:9px;max-height:calc(100% - 36px);overflow-y:auto}
 .expansion-summary{right:auto;left:20px}
 .ps-close-btn{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.08);color:#c9d3dd;border:1px solid rgba(255,255,255,.18);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:5;padding:0}
@@ -243,12 +250,18 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
       </div>
       <div id="revenuePane" class="tab-pane hidden">
         <div class="topline"><span class="pane-label">Select showrooms</span><div class="controls"><button id="selectAllRevenue" class="mini" type="button">All</button><button id="clearRevenue" class="mini" type="button">Clear</button></div></div>
-        <div class="hint" style="margin:8px 0 10px">With no selection, all 4 showrooms are shown. Their territory is colored on the map, with a revenue heatmap — circle size = cumulative VF revenue — layered on top.</div>
+        <div class="hint" style="margin:8px 0 10px">With no selection, all 4 showrooms are shown. Their territory is colored on the map, with a revenue heatmap layered on top.</div>
         <div class="controls" style="margin:0 0 10px">
           <button id="heatmapYear2025Btn" class="mini" type="button" aria-pressed="false">VF 2025</button>
           <button id="heatmapYear2024Btn" class="mini" type="button" aria-pressed="false">VF 2024</button>
         </div>
         <div id="revenueLegend" class="legend"></div>
+        <div class="slider-row"><span class="slider-label">Heat radius</span><span class="slider-value" id="heatRadiusVal">38</span></div>
+        <input id="heatRadiusSlider" class="slider" type="range" min="12" max="80" value="38" step="1" />
+        <div class="slider-row" style="margin-top:12px"><span class="slider-label">Heat scale</span><span class="slider-value" id="heatScaleVal">100%</span></div>
+        <input id="heatScaleSlider" class="slider" type="range" min="20" max="200" value="100" step="5" />
+        <div class="hint" style="margin:6px 0 14px">Lower scale = more area looks "hot" (red); higher scale = only the very top values look hot.</div>
+        <button id="revenueHoverToggle" class="mini" type="button" aria-pressed="false" style="width:100%">Show details on hover</button>
       </div>
       <div id="referencePane" class="tab-pane hidden">
         <div class="drop"><input id="fileInput" type="file" accept=".xls,.xlsx,.csv" /><div class="hint">Required columns: postcode + partner/name. Municipality, province, postboxes, partner type and yearly values are optional.<br><br><strong>Current behavior:</strong> this HTML contains a built-in reference list. Uploading a new file replaces the active reference and stores it in this browser.</div></div>
@@ -1496,11 +1509,15 @@ function showPane(which){
     tabs[key].pane.classList.toggle('hidden',!active);
   }
   resetAllTabFilters();
+  const mapEl=document.getElementById('map');
   if(which==='revenue'){
     revenueMode=true;
+    if(mapEl)mapEl.classList.add('hide-region-tooltips');
     if(typeof renderRevenueLegend==='function')renderRevenueLegend();
     if(regionLayer){regionLayer.setStyle(style);fitVisibleRegions()}
     setHeatmapYear('2025');
+  }else{
+    if(mapEl)mapEl.classList.remove('hide-region-tooltips');
   }
 }
 function resetAllTabFilters(){
@@ -1513,6 +1530,9 @@ function resetAllTabFilters(){
   heatmapMode=null;
   revenueMode=false;
   selectedRevenuePartners.clear();
+  revenueHoverEnabled=false;
+  const hoverBtn=document.getElementById('revenueHoverToggle');
+  if(hoverBtn){hoverBtn.classList.remove('active');hoverBtn.setAttribute('aria-pressed','false');hoverBtn.textContent='Show details on hover'}
   if(revenueHeatLayer){map.removeLayer(revenueHeatLayer);revenueHeatLayer=null}
   const legendEl=document.getElementById('legend'),provinceLegendEl=document.getElementById('provinceLegend'),typeLegendEl=document.getElementById('typeLegend');
   if(legendEl)[...legendEl.children].forEach(x=>x.classList.remove('active'));
@@ -1543,7 +1563,7 @@ window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 const road=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});imagery.addTo(map);labels.addTo(map);
-let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,revenueMode=false,selectedRevenuePartners=new Set(),revenueHeatLayer=null,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
+let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,revenueMode=false,selectedRevenuePartners=new Set(),revenueHeatLayer=null,heatRadius=38,heatScale=100,revenueHoverEnabled=false,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
 const REVENUE_PARTNERS=['Winsol Izegem','Winsol Knokke-Heist','Winsol Oostende','Winsol SDW'];
 // Shared settings: config.json (if present in the repo) provides the default
 // partner order/merges for every visitor. A person's own localStorage (set
@@ -1660,7 +1680,10 @@ function isConceptStore(f){const t=(f.properties._partnerType||'').toLowerCase()
 function style(f){
   const on=visible(f),p=f.properties._partner;
   let fillColor,hasCategory;
-  if(expansionMode){
+  if(revenueMode){
+    fillColor='#3a4048';
+    hasCategory=!!p;
+  }else if(expansionMode){
     const zoneProp=expansionMode==='all'?f.properties._expansionZone:f.properties._goZone;
     fillColor=zoneProp?partnerColor(zoneProp,zoneIndex.get(zoneProp)||0):'#6f7882';
     hasCategory=!!zoneProp;
@@ -1877,11 +1900,12 @@ function updateRevenueHeatmap(){
     if(val>0)points.push([r.lat,r.lng,val]);
   }
   if(!points.length||typeof L.heatLayer!=='function')return;
+  const effectiveMax=(maxVal||1)*(heatScale/100);
   revenueHeatLayer=L.heatLayer(points,{
-    radius:38,
-    blur:28,
+    radius:heatRadius,
+    blur:Math.round(heatRadius*0.72),
     maxZoom:14,
-    max:maxVal||1,
+    max:effectiveMax||1,
     minOpacity:0.35,
     gradient:{0.0:'#1b8a3a',0.35:'#7cc142',0.55:'#f4e04d',0.75:'#f39c2d',1.0:'#e0332f'}
   }).addTo(map);
@@ -1895,6 +1919,24 @@ function setHeatmapYear(year){
 }
 document.getElementById('heatmapYear2025Btn').onclick=()=>setHeatmapYear('2025');
 document.getElementById('heatmapYear2024Btn').onclick=()=>setHeatmapYear('2024');
+document.getElementById('heatRadiusSlider').oninput=e=>{
+  heatRadius=Number(e.target.value);
+  document.getElementById('heatRadiusVal').textContent=heatRadius;
+  updateRevenueHeatmap();
+};
+document.getElementById('heatScaleSlider').oninput=e=>{
+  heatScale=Number(e.target.value);
+  document.getElementById('heatScaleVal').textContent=heatScale+'%';
+  updateRevenueHeatmap();
+};
+document.getElementById('revenueHoverToggle').onclick=()=>{
+  revenueHoverEnabled=!revenueHoverEnabled;
+  const btn=document.getElementById('revenueHoverToggle');
+  btn.classList.toggle('active',revenueHoverEnabled);
+  btn.setAttribute('aria-pressed',revenueHoverEnabled?'true':'false');
+  btn.textContent=revenueHoverEnabled?'Hide details on hover':'Show details on hover';
+  document.getElementById('map').classList.toggle('hide-region-tooltips',!revenueHoverEnabled);
+};
 (function(){
   const overlay=document.getElementById('adminOverlay');
   const loginView=document.getElementById('adminLoginView');
