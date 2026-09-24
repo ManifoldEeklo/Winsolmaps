@@ -242,16 +242,13 @@ button,.mini,.ghost,.primary{min-height:44px;touch-action:manipulation}
         <div id="zoneLegend" class="legend hidden"><div class="muted">Choose "All" or "Go zones" above to see zones.</div></div>
       </div>
       <div id="revenuePane" class="tab-pane hidden">
-        <div class="topline"><span class="pane-label">Revenue heatmap</span></div>
-        <div class="controls" style="margin:8px 0 10px">
+        <div class="topline"><span class="pane-label">Select showrooms</span><div class="controls"><button id="selectAllRevenue" class="mini" type="button">All</button><button id="clearRevenue" class="mini" type="button">Clear</button></div></div>
+        <div class="hint" style="margin:8px 0 10px">With no selection, all 4 showrooms are shown. Their territory is colored on the map, with a revenue heatmap — circle size = cumulative VF revenue — layered on top.</div>
+        <div class="controls" style="margin:0 0 10px">
           <button id="heatmapYear2025Btn" class="mini" type="button" aria-pressed="false">VF 2025</button>
           <button id="heatmapYear2024Btn" class="mini" type="button" aria-pressed="false">VF 2024</button>
         </div>
-        <div class="hint" style="margin:0 0 14px">Every postcode is shown, colored by its own <strong>VF (B2B)</strong> revenue — cooler colors mean lower revenue, hotter colors mean higher. Switch years above.</div>
-        <div id="heatmapLegend" class="heatmap-legend">
-          <div class="heatmap-bar"></div>
-          <div class="heatmap-scale"><span>0</span><span id="heatmapMaxLabel">0</span></div>
-        </div>
+        <div id="revenueLegend" class="legend"></div>
       </div>
       <div id="referencePane" class="tab-pane hidden">
         <div class="drop"><input id="fileInput" type="file" accept=".xls,.xlsx,.csv" /><div class="hint">Required columns: postcode + partner/name. Municipality, province, postboxes, partner type and yearly values are optional.<br><br><strong>Current behavior:</strong> this HTML contains a built-in reference list. Uploading a new file replaces the active reference and stores it in this browser.</div></div>
@@ -1498,7 +1495,13 @@ function showPane(which){
     tabs[key].pane.classList.toggle('hidden',!active);
   }
   resetAllTabFilters();
-  if(which==='revenue')setHeatmapYear('2025');
+  if(which==='revenue'){
+    revenueMode=true;
+    if(revenueBubbleLayer&&!map.hasLayer(revenueBubbleLayer))revenueBubbleLayer.addTo(map);
+    if(typeof renderRevenueLegend==='function')renderRevenueLegend();
+    if(regionLayer){regionLayer.setStyle(style);fitVisibleRegions()}
+    setHeatmapYear('2025');
+  }
 }
 function resetAllTabFilters(){
   selectedPartners.clear();
@@ -1508,6 +1511,9 @@ function resetAllTabFilters(){
   selectedZoneForResume=null;
   selectedFutureSearch.clear();
   heatmapMode=null;
+  revenueMode=false;
+  selectedRevenuePartners.clear();
+  if(revenueBubbleLayer){revenueBubbleLayer.clearLayers();if(map.hasLayer(revenueBubbleLayer))map.removeLayer(revenueBubbleLayer)}
   const legendEl=document.getElementById('legend'),provinceLegendEl=document.getElementById('provinceLegend'),typeLegendEl=document.getElementById('typeLegend');
   if(legendEl)[...legendEl.children].forEach(x=>x.classList.remove('active'));
   if(provinceLegendEl)[...provinceLegendEl.children].forEach(x=>x.classList.remove('active'));
@@ -1520,6 +1526,7 @@ function resetAllTabFilters(){
   if(hy24){hy24.classList.remove('active');hy24.setAttribute('aria-pressed','false')}
   if(typeof renderZoneLegend==='function')renderZoneLegend();
   if(typeof renderFutureSearchLegend==='function')renderFutureSearchLegend();
+  if(typeof renderRevenueLegend==='function')renderRevenueLegend();
   if(regionLayer){regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]})}
   if(typeof updatePartnerSummary==='function')updatePartnerSummary();
   if(typeof updateExpansionSummary==='function')updateExpansionSummary();
@@ -1536,7 +1543,9 @@ window.map=map;
 const imagery=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
 const labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
 const road=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});imagery.addTo(map);labels.addTo(map);
-let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,heatmapMax2025=0,heatmapMax2024=0,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
+let municipalities=[],regionLayer=null,rows=[],selectedPartners=new Set(),selectedProvinces=new Set(),selectedPartnerTypes=new Set(),expansionMode=null,selectedZoneForResume=null,selectedFutureSearch=new Set(),heatmapMode=null,revenueMode=false,selectedRevenuePartners=new Set(),revenueBubbleLayer=null,q='',tempOnly=false,partnerCounts=new Map(),pIndex=new Map(),rawPartners=[],zoneIndex=new Map();
+revenueBubbleLayer=L.layerGroup();
+const REVENUE_PARTNERS=['Winsol Izegem','Winsol Knokke-Heist','Winsol Oostende','Winsol SDW'];
 // Shared settings: config.json (if present in the repo) provides the default
 // partner order/merges for every visitor. A person's own localStorage (set
 // via the Admin panel in this browser) always takes priority over it, so an
@@ -1634,8 +1643,13 @@ function renderPartnerLegend(){
   document.getElementById('clearPartners').onclick=()=>{selectedPartners.clear();for(const b of buttons.values()){b.classList.remove('active');b.setAttribute('aria-pressed','false')}regionLayer.setStyle(style);fitVisibleRegions();updatePartnerSummary()};
 }
 function visible(f){
-  if(heatmapMode)return true;
-  const p=f.properties._partner,pr=f.properties._province,pt=f.properties._partnerType;if(tempOnly&&!f.properties._temp)return false;if(selectedPartners.size&&(!p||!selectedPartners.has(p)))return false;if(selectedProvinces.size&&(!pr||!selectedProvinces.has(pr)))return false;if(selectedPartnerTypes.size&&(!pt||!selectedPartnerTypes.has(pt)))return false;
+  const p=f.properties._partner,pr=f.properties._province,pt=f.properties._partnerType;
+  if(revenueMode){
+    if(!p||!REVENUE_PARTNERS.includes(p))return false;
+    if(selectedRevenuePartners.size&&!selectedRevenuePartners.has(p))return false;
+    return true;
+  }
+  if(tempOnly&&!f.properties._temp)return false;if(selectedPartners.size&&(!p||!selectedPartners.has(p)))return false;if(selectedProvinces.size&&(!pr||!selectedProvinces.has(pr)))return false;if(selectedPartnerTypes.size&&(!pt||!selectedPartnerTypes.has(pt)))return false;
   if(expansionMode){
     const zoneProp=expansionMode==='all'?f.properties._expansionZone:f.properties._goZone;
     if(selectedZoneForResume){if(zoneProp!==selectedZoneForResume)return false}
@@ -1644,29 +1658,10 @@ function visible(f){
   }
   if(!q)return true;const ss=q.toLowerCase();return (p||'').toLowerCase().includes(ss)||(pr||'').toLowerCase().includes(ss)||fname(f).toLowerCase().includes(ss)||f.properties._rows.some(r=>r.postcode.includes(ss))}
 function isConceptStore(f){const t=(f.properties._partnerType||'').toLowerCase().replace(/[\s_-]+/g,'');return t.includes('winsolconceptstore')}
-function heatColor(t){
-  const stops=[[0,[26,42,74]],[0.25,[35,120,140]],[0.5,[240,210,80]],[0.75,[240,140,60]],[1,[210,40,50]]];
-  t=Math.max(0,Math.min(1,t));
-  for(let i=0;i<stops.length-1;i++){
-    const [t0,c0]=stops[i],[t1,c1]=stops[i+1];
-    if(t>=t0&&t<=t1){
-      const f2=(t1===t0)?0:(t-t0)/(t1-t0);
-      const r=Math.round(c0[0]+(c1[0]-c0[0])*f2),g=Math.round(c0[1]+(c1[1]-c0[1])*f2),b=Math.round(c0[2]+(c1[2]-c0[2])*f2);
-      return `rgb(${r},${g},${b})`;
-    }
-  }
-  const last=stops[stops.length-1][1];return `rgb(${last[0]},${last[1]},${last[2]})`;
-}
 function style(f){
   const on=visible(f),p=f.properties._partner;
   let fillColor,hasCategory;
-  if(heatmapMode){
-    const val=heatmapMode==='2024'?(f.properties._vf2024B2B||0):(f.properties._vf2025B2B||0);
-    const max=heatmapMode==='2024'?heatmapMax2024:heatmapMax2025;
-    const t=max>0?val/max:0;
-    fillColor=heatColor(t);
-    hasCategory=true;
-  }else if(expansionMode){
+  if(expansionMode){
     const zoneProp=expansionMode==='all'?f.properties._expansionZone:f.properties._goZone;
     fillColor=zoneProp?partnerColor(zoneProp,zoneIndex.get(zoneProp)||0):'#6f7882';
     hasCategory=!!zoneProp;
@@ -1846,20 +1841,58 @@ function setExpansionMode(mode){
   fitVisibleRegions();
   updateExpansionSummary();
 }
-function renderHeatmapLegend(){
-  const label=document.getElementById('heatmapMaxLabel');
-  if(!label)return;
-  const max=heatmapMode==='2024'?heatmapMax2024:heatmapMax2025;
-  label.textContent=Math.round(max).toLocaleString('nl-BE');
+function renderRevenueLegend(){
+  const el=document.getElementById('revenueLegend');
+  if(!el)return;
+  el.innerHTML='';
+  REVENUE_PARTNERS.forEach(p=>{
+    const count=partnerCounts.get(p)||0;
+    const b=document.createElement('button');
+    b.innerHTML=`<span class="sw" style="background:${partnerColor(p,pIndex.get(p)||0)}"></span><span>${p}</span><span class="cnt">${count}</span>`;
+    const isActive=selectedRevenuePartners.has(p);
+    if(isActive)b.classList.add('active');
+    b.setAttribute('aria-pressed',isActive?'true':'false');
+    b.addEventListener('click',()=>{
+      if(selectedRevenuePartners.has(p)){selectedRevenuePartners.delete(p);b.classList.remove('active');b.setAttribute('aria-pressed','false')}
+      else{selectedRevenuePartners.add(p);b.classList.add('active');b.setAttribute('aria-pressed','true')}
+      if(regionLayer)regionLayer.setStyle(style);
+      fitVisibleRegions();
+      updateRevenueHeatmap();
+    });
+    el.appendChild(b);
+  });
+}
+document.getElementById('selectAllRevenue').onclick=()=>{selectedRevenuePartners=new Set(REVENUE_PARTNERS);renderRevenueLegend();if(regionLayer)regionLayer.setStyle(style);fitVisibleRegions();updateRevenueHeatmap()};
+document.getElementById('clearRevenue').onclick=()=>{selectedRevenuePartners.clear();renderRevenueLegend();if(regionLayer)regionLayer.setStyle(style);fitVisibleRegions();updateRevenueHeatmap()};
+function updateRevenueHeatmap(){
+  if(!revenueBubbleLayer)return;
+  revenueBubbleLayer.clearLayers();
+  if(!revenueMode)return;
+  const year=heatmapMode==='2024'?'2024':'2025';
+  const activePartners=selectedRevenuePartners.size?selectedRevenuePartners:new Set(REVENUE_PARTNERS);
+  const points=[];
+  let maxVal=0;
+  for(const r of rows){
+    if(!activePartners.has(r.partner))continue;
+    const val=year==='2024'?(r.vf2024B2B||0):(r.vf2025B2B||0);
+    if(val>maxVal)maxVal=val;
+    points.push({lat:r.lat,lng:r.lng,val,postcode:r.postcode,partner:r.partner});
+  }
+  const minR=4,maxR=26;
+  for(const p of points){
+    const t=maxVal>0?p.val/maxVal:0;
+    const radius=minR+(maxR-minR)*Math.sqrt(t);
+    L.circleMarker([p.lat,p.lng],{radius,color:'#111',weight:1,fillColor:'#FFC72C',fillOpacity:0.55,pane:'markerPane'})
+      .bindTooltip(`<b>${p.partner}</b><br>Postcode: ${p.postcode}<br>VF ${year} (B2B): ${Math.round(p.val).toLocaleString('nl-BE')}`,{className:'regiontip'})
+      .addTo(revenueBubbleLayer);
+  }
 }
 function setHeatmapYear(year){
   heatmapMode=year;
   const b25=document.getElementById('heatmapYear2025Btn'),b24=document.getElementById('heatmapYear2024Btn');
   if(b25){b25.classList.toggle('active',year==='2025');b25.setAttribute('aria-pressed',year==='2025'?'true':'false')}
   if(b24){b24.classList.toggle('active',year==='2024');b24.setAttribute('aria-pressed',year==='2024'?'true':'false')}
-  renderHeatmapLegend();
-  if(regionLayer)regionLayer.setStyle(style);
-  if(regionLayer)map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});
+  updateRevenueHeatmap();
 }
 document.getElementById('heatmapYear2025Btn').onclick=()=>setHeatmapYear('2025');
 document.getElementById('heatmapYear2024Btn').onclick=()=>setHeatmapYear('2024');
@@ -2093,12 +2126,11 @@ zoneIndex=new Map();[...allZoneNames].sort((a,b)=>a.localeCompare(b,'nl')).forEa
 document.getElementById('zoneModeAllBtn').onclick=()=>setExpansionMode('all');
 document.getElementById('zoneModeGoBtn').onclick=()=>setExpansionMode('go');
 renderZoneLegend();
-heatmapMax2025=0;heatmapMax2024=0;for(const f of municipalities){heatmapMax2025=Math.max(heatmapMax2025,f.properties._vf2025B2B||0);heatmapMax2024=Math.max(heatmapMax2024,f.properties._vf2024B2B||0)}
-renderHeatmapLegend();
 partnerCounts=new Map();for(const f of municipalities){const p=f.properties._partner;if(p)partnerCounts.set(p,(partnerCounts.get(p)||0)+1)}
+renderRevenueLegend();
 renderPartnerLegend();
 document.getElementById('tempZones').onclick=()=>{tempOnly=!tempOnly;const b=document.getElementById('tempZones');b.classList.toggle('active',tempOnly);b.setAttribute('aria-pressed',tempOnly?'true':'false');regionLayer.setStyle(style);if(tempOnly){const visibleLayers=[];regionLayer.eachLayer(l=>{if(l.feature?.properties?._temp&&visible(l.feature))visibleLayers.push(l)});if(visibleLayers.length){const g=L.featureGroup(visibleLayers);map.fitBounds(g.getBounds(),{padding:[30,30]})}}};
-document.getElementById('search').oninput=e=>{q=e.target.value.trim();regionLayer.setStyle(style)};document.getElementById('reset').onclick=()=>{selectedPartners.clear();selectedProvinces.clear();selectedPartnerTypes.clear();expansionMode=null;selectedZoneForResume=null;q='';tempOnly=false;document.getElementById('search').value='';const tb=document.getElementById('tempZones');tb.classList.remove('active');tb.setAttribute('aria-pressed','false');const zAllBtn=document.getElementById('zoneModeAllBtn'),zGoBtn=document.getElementById('zoneModeGoBtn');zAllBtn.classList.remove('active');zAllBtn.setAttribute('aria-pressed','false');zGoBtn.classList.remove('active');zGoBtn.setAttribute('aria-pressed','false');[...legend.children].forEach(x=>x.classList.remove('active'));[...provinceLegend.children].forEach(x=>x.classList.remove('active'));[...typeLegend.children].forEach(x=>x.classList.remove('active'));renderZoneLegend();regionLayer.setStyle(style);map.fitBounds(regionLayer.getBounds(),{padding:[20,20]});updatePartnerSummary();updateExpansionSummary()};
+document.getElementById('search').oninput=e=>{q=e.target.value.trim();regionLayer.setStyle(style)};document.getElementById('reset').onclick=()=>{q='';tempOnly=false;document.getElementById('search').value='';const tb=document.getElementById('tempZones');tb.classList.remove('active');tb.setAttribute('aria-pressed','false');resetAllTabFilters()};
 status.className='status ok';const tempPcs=new Set(rows.filter(r=>r.temp).map(r=>r.postcode)).size;status.textContent=`Ready · ${rows.length.toLocaleString('en')} valid rows · ${byPc.size} unique postcodes · ${partners.length} partners · ${provinceCounts.size} provinces · ${tempPcs} Temp postcodes.`;
 }
 
