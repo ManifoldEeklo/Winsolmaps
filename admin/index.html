@@ -1,0 +1,2724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RA Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="/admin/manifest.webmanifest">
+<meta name="theme-color" content="#262628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="RA Admin">
+<link rel="apple-touch-icon" href="/admin/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/admin/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Colours taken from the ROOT Ahead logo itself */
+  :root{
+    --char:#262628; --char-2:#2f2f32; --char-3:#3a3a3e;
+    --yellow:#fbc120; --yellow-ink:#2a2006;
+    --grey:#e5e4e3; --muted:#a3a19c; --bad:#ff8a73; --good:#9fd59a;
+    --r:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--char);color:var(--grey);font:400 16px/1.5 'IBM Plex Sans',system-ui,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);min-height:100vh;}
+  button,input,textarea,select{font:inherit;color:inherit;}
+  :focus-visible{outline:2px solid var(--yellow);outline-offset:2px;}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 18px 40px;}
+  h1,h2{font-family:'Archivo',system-ui,sans-serif;margin:0;}
+  .muted{color:var(--muted);}
+
+  /* lock screen */
+  #lock{min-height:100vh;display:grid;place-items:center;padding:24px;}
+  .lock-card{width:min(380px,100%);text-align:left;}
+  .lock-card img{width:190px;display:block;margin:0 0 18px;}
+  .lock-card h1{font-size:26px;font-weight:800;margin-bottom:4px;}
+  .lock-card p{margin:0 0 18px;}
+  .field{display:block;margin:14px 0 6px;font-size:14px;font-weight:600;}
+  input[type=password],input[type=text],input[type=search],input[type=number],input[type=time],textarea,select{
+    width:100%;background:var(--char-2);border:1px solid var(--char-3);border-radius:10px;padding:12px 13px;font-size:16px;}
+  textarea{resize:vertical;min-height:96px;}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--yellow);}
+  input:disabled,select:disabled{opacity:.45;}
+  .go{width:100%;margin-top:14px;background:var(--yellow);color:var(--yellow-ink);border:none;border-radius:12px;
+    padding:14px 18px;font-family:'Archivo',sans-serif;font-weight:800;font-size:17px;cursor:pointer;}
+  .go:disabled{opacity:.45;cursor:not-allowed;}
+  .err{color:var(--bad);min-height:22px;margin-top:10px;font-size:14px;}
+
+  /* app */
+  header.bar{display:flex;align-items:center;gap:12px;padding:12px 0 18px;border-bottom:1px solid var(--char-3);margin-bottom:6px;}
+  header.bar img{height:44px;width:auto;}
+  header.bar h1{font-size:22px;font-weight:800;flex:1 1 auto;}
+  .ghost{background:none;border:1px solid var(--char-3);border-radius:10px;padding:7px 12px;font-size:14px;cursor:pointer;color:var(--grey);}
+  section{padding:18px 0;border-bottom:1px solid var(--char-3);}
+  section:last-of-type{border-bottom:none;}
+  h2{font-size:18px;font-weight:700;margin-bottom:10px;}
+
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--char-2);border-radius:12px;padding:4px;gap:4px;}
+  .seg button{border:none;background:none;border-radius:9px;padding:9px 6px;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);}
+  .seg button[aria-pressed="true"]{background:var(--grey);color:var(--char);}
+  .pane{margin-top:12px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{border:1px solid var(--char-3);background:var(--char-2);border-radius:20px;padding:7px 14px;font-size:14px;cursor:pointer;}
+  .chip[aria-pressed="true"]{border-color:var(--yellow);color:var(--yellow);}
+  .people{margin-top:10px;max-height:300px;overflow-y:auto;border:1px solid var(--char-3);border-radius:12px;}
+  .people label{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--char-3);cursor:pointer;}
+  .people label:last-child{border-bottom:none;}
+  .people label.off{opacity:.45;cursor:not-allowed;}
+  .people input{width:20px;height:20px;accent-color:var(--yellow);flex:0 0 auto;}
+  .people .nm{flex:1 1 auto;min-width:0;}
+  .people .sub{display:block;font-size:13px;color:var(--muted);}
+  .count{margin-top:10px;font-size:14px;color:var(--muted);}
+  .row2{display:grid;grid-template-columns:1fr;gap:0;}
+  .link-hint{font-size:13px;color:var(--muted);margin-top:6px;word-break:break-all;}
+  .link-hint.bad{color:var(--bad);}
+  .chars{text-align:right;font-size:13px;color:var(--muted);margin-top:4px;}
+
+  /* the one memorable piece: the message as it will appear on a locked phone */
+  .lockscreen{margin-top:4px;border-radius:22px;padding:22px 14px 26px;
+    background:radial-gradient(120% 90% at 50% 0%, #4a4a50 0%, #2b2b2f 55%, #1d1d20 100%);}
+  .lockscreen .clock{text-align:center;font-family:'Archivo',sans-serif;font-weight:700;font-size:44px;line-height:1;color:#f4f3f1;}
+  .lockscreen .date{text-align:center;font-size:13px;color:#d8d6d2;margin:4px 0 18px;}
+  .notif{display:flex;gap:11px;background:rgba(245,244,242,.82);color:#1c1c1e;border-radius:18px;padding:11px 13px;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  .notif img{width:38px;height:38px;border-radius:9px;flex:0 0 auto;}
+  .notif .top{display:flex;justify-content:space-between;font-size:12.5px;color:#55545a;}
+  .notif .t{font-weight:600;font-size:15px;line-height:1.3;}
+  .notif .b{font-size:15px;line-height:1.3;white-space:pre-wrap;word-break:break-word;}
+  .notif .b.empty{color:#8a898f;}
+
+  .result{margin-top:12px;font-size:15px;min-height:22px;}
+  .result.ok{color:var(--good);} .result.no{color:var(--bad);}
+  .log{list-style:none;margin:0;padding:0;}
+  .log li{padding:12px 0;border-bottom:1px solid var(--char-3);}
+  .log li:last-child{border-bottom:none;}
+  .log .msg{white-space:pre-wrap;word-break:break-word;}
+  .log .meta{font-size:13px;color:var(--muted);margin-top:3px;}
+  .empty-note{color:var(--muted);font-size:14px;}
+  [hidden]{display:none !important;}
+  /* in-app dialogs */
+  .ui-dlg{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(10,10,12,.72);
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+  .ui-dlg.open{display:flex;animation:uiIn .14s ease-out;}
+  @keyframes uiIn{from{opacity:0}to{opacity:1}}
+  .ui-card{width:min(440px,100%);background:var(--char-2);border:1px solid var(--char-3);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .ui-title{font-family:'Archivo',sans-serif;font-size:19px;margin:0 0 8px;}
+  .ui-text{font-size:15px;line-height:1.5;color:var(--grey);white-space:pre-line;}
+  .ui-fields{display:grid;gap:12px;margin-top:6px;}
+  .ui-fields:empty{display:none;}
+  .ui-field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;}
+  .ui-btns{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .ui-btns button{border-radius:12px;padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;min-width:110px;}
+  .ui-cancel{background:none;border:1px solid var(--char-3);color:var(--grey);}
+  .ui-ok{background:var(--yellow);border:none;color:var(--yellow-ink);}
+  .ui-ok.danger{background:var(--bad);color:#2a0d06;}
+  @media (max-width:430px){ .ui-btns button{flex:1 1 0;min-width:0;} }
+  /* riders setup */
+  .tm-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px;}
+  body.wide .tm-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));}
+  .tcard{display:flex;gap:14px;align-items:center;text-align:left;width:100%;padding:12px;border-radius:14px;border:1px solid var(--char-3);
+    border-left:6px solid var(--tc);background:var(--char-2);color:var(--grey);font:inherit;cursor:pointer;}
+  .tcard:hover{border-color:var(--tc);}
+  .tmain{min-width:0;flex:1 1 auto;}
+  .tmain b{display:block;font-family:'Archivo',sans-serif;font-size:18px;}
+  .tabout{display:block;font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tbadge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:12px;color:#141414;font-family:'Archivo',sans-serif;font-weight:800;
+    background-size:cover !important;background-position:center !important;}
+  .tbadge.haslogo{background-color:#fff !important;background-size:contain !important;background-repeat:no-repeat;}
+  .tm-logo{width:140px;height:140px;border-radius:24px;background:#fbc120 center/contain no-repeat;display:flex;align-items:center;justify-content:center;
+    font-family:'Archivo',sans-serif;font-weight:800;font-size:40px;color:#141414;border:3px solid var(--char-3);}
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+  .swatch{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;}
+  .swatch[aria-pressed="true"]{border-color:var(--grey);box-shadow:0 0 0 2px var(--char);}
+  #tmColor{width:64px;height:36px;padding:2px;background:var(--char-2);border:1px solid var(--char-3);border-radius:8px;}
+  .members-h{font-family:'Archivo',sans-serif;font-size:16px;margin:20px 0 8px;}
+  .members-h small{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:13px;color:var(--muted);margin-left:6px;}
+  .members label{gap:10px;}
+  .members .sub.move{color:var(--yellow);}
+  .nick{display:block;font-weight:400;font-size:12.5px;color:var(--yellow);font-style:italic;}
+  .opt{font-weight:400;color:var(--muted);font-size:12px;}
+  .tdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .linkbtn{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;font-weight:400;text-decoration:underline;cursor:pointer;padding:0;margin-left:6px;}
+  .rd-grid label > .linkbtn{display:inline;}
+  .maintabs button{font-size:15px;padding:12px 2px;}
+  .rcseg{flex:0 1 300px;grid-template-columns:repeat(3,1fr);}
+  :root{--k-race:#fbc120;--k-training:#3fbf6a;--k-event:#a57bf0;}
+  .rc-add{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;max-width:560px;}
+  .rc-add .go{margin:0;padding:12px 6px;font-size:15px;}
+  .go.k-training{background:var(--k-training);color:#0d2414;} .go.k-event{background:var(--k-event);color:#1c0f33;}
+  .rc-filters{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+  .kseg{flex:0 1 420px;grid-template-columns:repeat(4,1fr);}
+  .rc-filters .seg button{font-size:13.5px;padding:9px 4px;}
+  .rc-kind{border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;}
+  .rc-kind.k-race{background:rgba(251,193,32,.18);color:var(--k-race);} .rc-kind.k-training{background:rgba(63,191,106,.16);color:#7fe39c;} .rc-kind.k-event{background:rgba(165,123,240,.18);color:#c7a9ff;}
+  .rc-kind.big{font-size:14px;padding:4px 12px;}
+  .rc-edhead{display:flex;align-items:center;gap:12px;margin-top:12px;} .rc-edhead .rv-name{margin:0;}
+  .rc-row.kind-training .rc-date{background:var(--k-training);} .rc-row.kind-event .rc-date{background:var(--k-event);}
+  .rc-row.kind-training{border-left:4px solid var(--k-training);} .rc-row.kind-event{border-left:4px solid var(--k-event);} .rc-row.kind-race{border-left:4px solid var(--k-race);}
+  .rc-replies{display:flex;gap:8px;font-size:12.5px;font-weight:700;}
+  .rc-replies .y{color:#7fe08f;} .rc-replies .n{color:#ff8f84;} .rc-replies .o{color:var(--muted);}
+  .rbadge{flex:0 0 auto;margin-left:auto;font-size:12px;font-weight:700;border-radius:10px;padding:2px 9px;}
+  .rbadge.y{background:rgba(62,207,90,.16);color:#7fe08f;} .rbadge.n{background:rgba(229,72,58,.18);color:#ff8f84;} .rbadge.o{background:var(--char-3);color:var(--muted);}
+  .rc-month{font-family:'Archivo',sans-serif;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;}
+  .rc-row{display:flex;gap:14px;align-items:center;width:100%;text-align:left;padding:12px;margin-bottom:8px;border-radius:14px;border:1px solid var(--char-3);
+    background:var(--char-2);color:var(--grey);font:inherit;cursor:pointer;}
+  .rc-row:hover{border-color:var(--yellow);}
+  .rc-row.past{opacity:.7;}
+  .rc-row.cancelled{border-color:rgba(255,138,115,.55);background:rgba(255,138,115,.06);}
+  .rc-row.cancelled .rc-main b{text-decoration:line-through;text-decoration-color:var(--bad);}
+  .rc-date{flex:0 0 54px;height:58px;border-radius:12px;background:var(--yellow);color:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .rc-row.cancelled .rc-date{background:var(--bad);}
+  .rc-date b{font-family:'Archivo',sans-serif;font-size:22px;line-height:1;}
+  .rc-date small{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.06em;}
+  .rc-main{flex:1 1 auto;min-width:0;}
+  .rc-main b{display:block;font-size:16px;}
+  .rc-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted);margin-top:3px;}
+  .rc-type{border:1px solid var(--char-3);border-radius:10px;padding:1px 8px;font-size:12px;color:var(--grey);}
+  .rc-cancel{background:var(--bad);color:#2a0d06;border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .rc-side{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+  .rc-side small{font-size:12px;color:var(--muted);}
+  .rc-faces{display:flex;}
+  .rc-faces .avatar{margin-left:-8px;border-color:var(--char-2);}
+  @media (max-width:520px){ .rc-faces{display:none;} }
+  .rc-cancelled-note{background:rgba(255,138,115,.12);border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:8px 12px;font-size:14px;}
+  .rc-layout{display:grid;grid-template-columns:1fr;gap:10px;}
+  body.wide .rc-layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start;}
+  .rd-grid label.span2{grid-column:1 / -1;}
+  body.wide #paneRaces .rd-grid{grid-template-columns:1fr 1fr;}
+  .members .sub.off{color:var(--bad);}
+  .rc-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .rc-actions .ghost{padding:10px 14px;}
+  .rdtools{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap;}
+  .rdtools .go{width:auto;margin:0;padding:12px 18px;font-size:15px;}
+  .rdtools input{flex:1 1 220px;max-width:420px;}
+  .avatar{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:50%;background:var(--char-3) center/cover no-repeat;
+    color:var(--yellow);font-family:'Archivo',sans-serif;font-weight:800;border:2px solid var(--char-3);}
+  .odot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;vertical-align:1px;flex:0 0 auto;}
+  .odot.on{background:#3ecf5a;box-shadow:0 0 0 3px rgba(62,207,90,.22);}
+  .odot.off{background:#e5483a;box-shadow:0 0 0 3px rgba(229,72,58,.18);}
+  .ostat{font-size:13px;white-space:nowrap;} .ostat.on{color:#7fe08f;} .ostat.off{color:#ff8f84;}
+  .rmain .ostat{display:block;margin-top:2px;}
+  .online-sum{margin:12px 0 0;font-size:14px;} .online-sum .odot{margin:0 8px 0 0;} .online-sum small{color:var(--muted);}
+  .codebtn{font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.12em;background:var(--char-2);border:1px dashed var(--yellow);color:var(--yellow);
+    border-radius:8px;padding:6px 10px;cursor:pointer;flex:0 0 auto;}
+  .rd-layout{display:grid;grid-template-columns:1fr;gap:16px;margin-top:12px;}
+  .rd-photo-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .rd-photo{width:140px;height:140px;border-radius:50%;background:var(--char-2) center/cover no-repeat;border:3px solid var(--yellow);
+    display:flex;align-items:center;justify-content:center;font-family:'Archivo',sans-serif;font-weight:800;font-size:44px;color:var(--yellow);}
+  .photo-pick{position:relative;overflow:hidden;cursor:pointer;display:inline-block;}
+  .photo-pick input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+  .rd-grid label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;}
+  .rd-grid input,.rd-grid select{font-weight:400;}
+  .codebox{margin-top:8px;padding:12px;border:1px dashed var(--yellow);border-radius:12px;}
+  .codebox .field{margin-top:0;}
+  .coderow{display:flex;gap:8px;}
+  .coderow input{font-family:'IBM Plex Mono',monospace;font-size:20px;letter-spacing:.2em;text-transform:uppercase;flex:1 1 auto;min-width:0;}
+  .coderow .ghost{flex:0 0 auto;padding:8px 12px;}
+  .danger-zone{margin-top:40px;border:1px solid rgba(255,138,115,.4);border-radius:12px;padding:12px 16px;}
+  .danger-zone summary{cursor:pointer;color:var(--bad);font-weight:600;}
+  .danger-zone p{font-size:14px;color:var(--muted);}
+  .newcodes{margin-top:12px;border:1px solid var(--char-3);border-radius:12px;overflow:hidden;}
+  .newcodes table{width:100%;border-collapse:collapse;font-size:14px;}
+  .newcodes td{padding:8px 12px;border-top:1px solid var(--char-3);}
+  .newcodes tr:first-child td{border-top:none;}
+  .newcodes td.code{font-family:'IBM Plex Mono',monospace;letter-spacing:.14em;color:var(--yellow);font-size:16px;text-align:right;}
+  .newcodes .btns{display:flex;gap:8px;padding:10px 12px;background:var(--char-2);}
+  .newcodes .btns .ghost{padding:8px 12px;}
+  .danger-zone + .danger-zone{margin-top:14px;}
+  .go.danger{background:var(--bad);color:#2a0d06;}
+  body.wide .rd-layout{grid-template-columns:200px minmax(0,640px);gap:36px;}
+  body.wide .rd-grid{grid-template-columns:repeat(4,1fr);}
+  body.wide .rd-form textarea{max-width:none;}
+  body.wide .danger-zone{max-width:640px;}
+  .rtable td .avatar{vertical-align:middle;}
+
+  /* ================= tablet + PC (body.wide, from 760 px) ================= */
+  body.wide .mob{display:none !important;}
+  body.wide .wrap{max-width:none;padding:18px 28px 48px;}
+  body.wide header.bar{padding-top:6px;}
+  body.wide .maintabs{max-width:420px;}
+  body.wide .seg.sub{max-width:640px;}
+  body.wide input[type=search]{max-width:420px;}
+  /* Messages: compose left, preview + sent right */
+  body.wide #paneMessages{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:36px;align-items:start;}
+  body.wide #paneMessages > section{border-bottom:none;}
+  body.wide #paneMessages > section:nth-child(1){grid-column:1;grid-row:1;}
+  body.wide #paneMessages > section:nth-child(2){grid-column:1;grid-row:2;}
+  body.wide #paneMessages > section:nth-child(3){grid-column:2;grid-row:1 / span 2;position:sticky;top:12px;}
+  body.wide #paneMessages > section:nth-child(4){grid-column:1 / -1;grid-row:3;border-top:1px solid var(--char-3);}
+  body.wide .people{max-height:420px;}
+  /* riders table */
+  .rtable-wrap{overflow-x:auto;margin-top:14px;border:1px solid var(--char-3);border-radius:12px;}
+  .rtable{width:100%;border-collapse:collapse;font-size:14.5px;}
+  .rtable th{text-align:left;font-size:12.5px;font-weight:600;color:var(--muted);padding:10px 14px;background:var(--char-2);white-space:nowrap;}
+  .rtable td{padding:12px 14px;border-top:1px solid var(--char-3);}
+  .rtable tbody tr{cursor:pointer;}
+  .rtable tbody tr:hover,.rtable tbody tr:focus{background:rgba(251,193,32,.06);outline:none;}
+  .rtable td.nm{font-weight:600;}
+  .rtable td.num{font-family:'Archivo',sans-serif;font-weight:700;white-space:nowrap;}
+  .rtable td.low{color:var(--bad);} .rtable td.mid{color:var(--yellow);} .rtable td.high{color:var(--good);}
+  .rtable td.refl{color:var(--muted);max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* rider page: details left, the whole plan right */
+  @media (min-width:1100px){ body.wide #riderView{display:grid;grid-template-columns:300px minmax(0,1fr);column-gap:28px;align-items:start;} }
+  body.wide #riderView > *{grid-column:1;}
+  body.wide #riderView > #rvPlanBox{grid-column:2;grid-row:1 / span 8;}
+  @media (min-width:1100px){
+    body.wide #riderView .rvtools{grid-template-columns:1fr;}
+    body.wide #riderView .two{grid-template-columns:1fr;}
+  }
+  body.wide #riderView .assign{margin-top:18px;}
+  /* tablet portrait: rider details on top in two columns, plan below at full width */
+  @media (max-width:1099px){
+    body.wide #riderView .permrow,body.wide #riderView .rvtools{max-width:760px;}
+    body.wide #riderView .assign{max-width:760px;}
+  }
+  /* build plan: step 1 compact, riders in columns */
+  body.wide #bdFrom{max-width:520px;}
+  body.wide #bdSuggest{max-width:520px;}
+  body.wide #bdStart,body.wide #rvSave,body.wide #tplSave,body.wide #woSave,body.wide #bdGive{max-width:360px;}
+  body.wide #bdRiders{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));max-height:none;}
+  body.wide #bdRiders label{border-bottom:1px solid var(--char-3);}
+  body.wide .bstep textarea,body.wide #bdName,body.wide #tplName,body.wide #tplAbout,body.wide #rvNote{max-width:760px;}
+  /* workout editor: steps left, profile + save right */
+  body.wide #woEditor{display:grid;grid-template-columns:minmax(0,1fr) 340px;column-gap:32px;align-items:start;}
+  body.wide .wo-side{position:sticky;top:12px;padding-top:46px;}
+  body.wide .wo-side .profile{height:120px;margin-top:0;}
+  body.wide .stephead,body.wide .steprow{grid-template-columns:minmax(0,1fr) 90px 180px 40px 40px;}
+  /* the plan table */
+  .pgrid-wrap{overflow-x:auto;margin-top:12px;border:1px solid var(--char-3);border-radius:12px;}
+  .pgrid{width:100%;border-collapse:collapse;table-layout:fixed;min-width:700px;}
+  @media (max-width:1099px){
+    .pgrid th.wkh{width:84px;} .pgrid th.toth{width:66px;}
+    .pgrid td.cell{padding:6px 3px;} .pgrid td.cell select{font-size:12px;padding:5px 3px;}
+    .cline input{width:46px;padding:4px;} .cline .u{display:none;}
+    .wktools button{height:26px;font-size:12px;}
+    body.wide .wrap{padding:14px 18px 40px;}
+  }
+  .pgrid th{font-size:12.5px;color:var(--muted);font-weight:600;padding:8px 6px;background:var(--char-2);text-align:left;}
+  .pgrid th.wkh{width:108px;} .pgrid th.toth{width:86px;}
+  .pgrid td,.pgrid th.wk{border-top:1px solid var(--char-3);vertical-align:top;padding:7px 6px;}
+  .pgrid th.wk{background:transparent;color:var(--grey);}
+  .pgrid th.wk b{display:block;font-size:13.5px;}
+  .pgrid th.wk small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;}
+  .pgrid th.wk select{margin-top:6px;padding:5px 6px;font-size:12.5px;}
+  .wktools{display:flex;gap:4px;margin-top:6px;}
+  .wktools button{flex:1 1 0;height:28px;border-radius:6px;border:1px solid var(--char-3);background:var(--char-2);color:var(--grey);cursor:pointer;font-size:13px;}
+  .wktools button:disabled{opacity:.3;cursor:default;}
+  .pgrid tr.thisweek th.wk b{color:var(--yellow);}
+  .pgrid td.cell{border-left:1px solid var(--char-3);box-shadow:inset 0 3px 0 var(--zc);}
+  .pgrid td.cell.rest select{color:var(--muted);}
+  .pgrid td.cell.today{background:rgba(251,193,32,.07);}
+  .pgrid td.cell.past{opacity:.72;}
+  .pgrid .cdate{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;}
+  .pgrid td.cell select{padding:6px 5px;font-size:12.5px;border-radius:7px;}
+  .cline{display:flex;align-items:center;gap:4px;margin-top:5px;}
+  .cline input{width:58px;padding:5px 6px;font-size:13px;border-radius:7px;}
+  .cline .u{font-size:11px;color:var(--muted);}
+  .cnote{margin-left:auto;border:1px solid transparent;border-radius:6px;background:none;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;padding:4px 6px;}
+  .cnote:hover{border-color:var(--char-3);color:var(--grey);}
+  .csel{position:relative;min-height:34px;border:1px solid var(--char-3);border-radius:7px;background:var(--char-2);
+    padding:6px 20px 6px 7px;font-size:12.5px;font-weight:600;line-height:1.25;}
+  .csel::after{content:'▾';position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;pointer-events:none;}
+  .csel .clbl{display:block;overflow-wrap:break-word;-webkit-hyphens:auto;hyphens:auto;}
+  @media (max-width:1099px){ .csel{font-size:11.5px;padding:5px 3px 5px 4px;letter-spacing:-.02em;} .csel::after{display:none;} }
+  .pgrid td.cell.rest .csel{font-weight:400;color:var(--muted);background:transparent;}
+  .csel select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .csel:focus-within{border-color:var(--yellow);}
+  .cnote.has{color:var(--yellow);}
+  .cnotetext{font-size:11.5px;color:var(--yellow);margin-top:4px;line-height:1.3;max-height:2.6em;overflow:hidden;}
+  .cnoteedit{margin-top:6px;}
+  .cnoteedit textarea{min-height:54px;font-size:13px;padding:6px;}
+  .cnoteedit .ghost{margin-top:4px;padding:4px 10px;font-size:12.5px;}
+  .cfb{font-size:11.5px;margin-top:4px;color:var(--good);} .cfb.skipped{color:var(--muted);}
+  .croute{font-size:11.5px;margin-top:2px;color:var(--muted);} .croute.off{color:var(--bad);}
+  .pgrid td.tot{border-left:1px solid var(--char-3);background:var(--char-2);}
+  .pgrid td.tot b{display:block;font-family:'Archivo',sans-serif;font-size:15px;}
+  .pgrid td.tot small{font-size:12px;color:var(--muted);}
+  .addweek{margin-top:10px;padding:9px 16px;}
+  @media (min-width:1300px){ .pgrid td.cell select{font-size:13.5px;} .cline input{width:64px;} }
+  /* main tabs */
+  .maintabs{display:flex;gap:4px;margin:4px 0 0;border-bottom:1px solid var(--char-3);}
+  .maintabs button{flex:1 1 0;background:none;border:none;border-bottom:3px solid transparent;padding:12px 6px;font-family:'Archivo',sans-serif;
+    font-weight:700;font-size:16px;color:var(--muted);cursor:pointer;margin-bottom:-1px;}
+  .maintabs button[aria-selected="true"]{color:var(--yellow);border-bottom-color:var(--yellow);}
+  .seg.sub{margin-top:16px;grid-template-columns:repeat(4,1fr);}
+  .seg.sub button{font-size:13px;padding:9px 2px;line-height:1.2;}
+  .weekbtns .ghost{font-size:13px;}
+  .trstatus{font-size:14px;color:var(--muted);margin-top:10px;min-height:0;}
+  .trstatus.bad,.result.bad{color:var(--bad);}
+  /* lists */
+  .rlist{list-style:none;margin:12px 0 0;padding:0;}
+  .rrow{display:flex;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--char-3);cursor:pointer;}
+  .rrow:hover .rmain b{color:var(--yellow);}
+  .rmain{flex:1 1 auto;min-width:0;}
+  .rmain b{display:block;font-weight:600;}
+  .rsub{display:block;font-size:13px;color:var(--muted);}
+  .rref{display:block;font-size:13px;color:var(--yellow);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rside{flex:0 0 auto;text-align:right;}
+  .rside b{display:block;font-family:'Archivo',sans-serif;font-size:17px;}
+  .rside small{font-size:12px;color:var(--muted);}
+  .miniprofile,.profile{display:flex;align-items:flex-end;gap:2px;background:var(--char-2);border-radius:6px;padding:4px;}
+  .miniprofile{height:26px;margin-top:6px;max-width:260px;}
+  .profile{height:70px;margin-top:14px;}
+  .miniprofile i,.profile i{display:block;min-width:2px;border-radius:2px 2px 0 0;}
+  .total{font-size:14px;color:var(--muted);margin-top:6px;}
+  /* rider + template editors */
+  .rv-name{font-size:22px;margin-top:14px;}
+  .rv-info{color:var(--muted);font-size:14px;margin:4px 0 6px;}
+  .weeknav{display:flex;align-items:center;gap:10px;margin:16px 0 6px;}
+  .weeknav b{flex:1 1 auto;text-align:center;font-size:15px;}
+  .weeknav .ghost{width:44px;height:40px;font-size:20px;padding:0;}
+  .dayrow{display:grid;grid-template-columns:52px minmax(0,1fr) 92px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--char-3);}
+  .dayrow .dlab{font-size:13px;font-weight:600;}
+  .dayrow select,.dayrow input{padding:9px 10px;font-size:15px;}
+  .dmin{display:flex;align-items:center;gap:4px;min-width:0;}
+  .dmin input{min-width:0;width:100%;}
+  .dmin small{font-size:12px;color:var(--muted);}
+  .dayrow .dnote{grid-column:2 / -1;font-size:14px;padding:8px 10px;}
+  .dref{grid-column:2 / -1;font-size:13px;color:var(--good);}
+  .dref.skipped{color:var(--muted);}
+  .check{display:flex;gap:10px;align-items:center;font-size:14px;margin-top:14px;}
+  .check input{width:20px;height:20px;accent-color:var(--yellow);}
+  .ghost.wide{display:block;width:100%;margin-top:10px;padding:11px;font-size:15px;}
+  .ghost.danger{color:var(--bad);border-color:rgba(255,138,115,.35);}
+  .bstep{margin-top:16px;padding:16px;border:1px solid var(--char-3);border-radius:14px;background:rgba(255,255,255,.015);}
+  .bstep h3{font-family:'Archivo',sans-serif;font-size:17px;margin:0 0 10px;color:var(--yellow);}
+  .weektools{display:flex;gap:8px;margin-top:8px;}
+  .bstep h3 .sn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--yellow);color:#1a1a1a;
+    font-size:14px;margin-right:10px;vertical-align:2px;}
+  .bd-hint{font-size:13.5px;color:var(--muted);margin:0 0 12px;}
+  .bd-picked{font-size:14px;margin:10px 0 0;color:var(--yellow);min-height:20px;}
+  .bd-summary{font-size:14px;background:var(--char);border-radius:10px;padding:10px 12px;margin:0 0 6px;line-height:1.5;}
+  .q{margin:0 0 16px;}
+  .q .ql{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:8px;}
+  .q .ql b{color:var(--yellow);font-family:'Archivo',sans-serif;}
+  .q.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .q.two label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;}
+  .daychips{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .daychips button,.segbtns button{border:1px solid var(--char-3);background:var(--char);color:var(--grey);border-radius:10px;padding:11px 4px;font:inherit;font-size:14px;cursor:pointer;}
+  .daychips button[aria-pressed="true"],.segbtns button[aria-pressed="true"]{background:var(--yellow);border-color:var(--yellow);color:#1a1a1a;font-weight:700;}
+  .segbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .segbtns.four{grid-template-columns:repeat(4,1fr);}
+  @media (max-width:520px){ .segbtns.four{grid-template-columns:1fr 1fr;} .q.two{grid-template-columns:1fr;} }
+  #bdHours{width:100%;accent-color:var(--yellow);}
+  #bdTplSel,#bdCopySel{margin-top:8px;}
+  .pgrid th.rideday{color:var(--yellow);}
+  .pgrid th.rideday::after{content:' ●';font-size:9px;vertical-align:2px;}
+  body.wide #subBuild > .bstep{max-width:900px;}
+  .weektools .ghost{flex:1 1 0;padding:9px 6px;font-size:14px;}
+  .daypick{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px;}
+  .daypick label{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12.5px;padding:6px 0;border:1px solid var(--char-3);border-radius:8px;cursor:pointer;}
+  .daypick input{width:18px;height:18px;accent-color:var(--yellow);}
+  .permrow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0 4px;padding:12px;border:1px solid var(--char-3);border-radius:12px;}
+  .permrow b{display:block;font-size:15px;}
+  .permrow small{color:var(--muted);font-size:13px;}
+  .switch{flex:0 0 auto;width:52px;height:30px;border-radius:15px;border:none;background:var(--char-3);position:relative;cursor:pointer;}
+  .switch::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--grey);transition:left .15s;}
+  .switch[aria-checked="true"]{background:var(--yellow);}
+  .switch[aria-checked="true"]::after{left:25px;background:var(--char);}
+  .rvtools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .rvtools .ghost{padding:10px 6px;font-size:14px;}
+  .droute{grid-column:2 / -1;font-size:12.5px;color:var(--muted);}
+  .droute.off{color:var(--bad);}
+  .assign{margin-top:26px;padding-top:16px;border-top:1px solid var(--char-3);}
+  .assign h3{font-family:'Archivo',sans-serif;font-size:16px;margin:0 0 10px;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  input[type=time]{color-scheme:dark;}
+  input[type=date]{width:100%;background:var(--char-2);border:1px solid var(--char-3);border-radius:10px;padding:12px 13px;font-size:16px;color-scheme:dark;}
+  .inline{display:flex;align-items:center;gap:8px;font-size:14px;}
+  .inline select{width:auto;padding:8px 10px;}
+  .weekbtns{display:flex;gap:6px;justify-content:flex-end;}
+  .weekbtns .ghost{padding:8px 12px;}
+  .stephead,.steprow{display:grid;grid-template-columns:1fr 70px 128px 34px 34px;gap:6px;align-items:center;}
+  .stephead{font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .stephead span:last-child{grid-column:3;}
+  .steprow{margin-bottom:6px;}
+  .steprow input,.steprow select{padding:9px 8px;font-size:14px;}
+  .steprow .icon{height:38px;border:1px solid var(--char-3);background:var(--char-2);border-radius:8px;cursor:pointer;color:var(--grey);}
+  .steprow .icon:disabled{opacity:.3;}
+  @media (max-width:430px){
+    /* a step on two lines: name / zone + minutes + buttons */
+    .stephead{display:none;}
+    .steprow{grid-template-columns:minmax(0,1fr) 64px 34px 34px;padding-bottom:8px;border-bottom:1px solid var(--char-3);margin-bottom:8px;}
+    .steprow input[type=text]{grid-column:1 / -1;grid-row:1;}
+    .steprow select{grid-column:1;grid-row:2;}
+    .steprow input[type=number]{grid-column:2;grid-row:2;}
+    .steprow .icon{grid-row:2;}
+    .dayrow{grid-template-columns:44px minmax(0,1fr) 84px;}
+    .dmin small{display:none;}
+  }
+  @media (prefers-reduced-motion:no-preference){ .notif{animation:drop .35s ease-out;} }
+  @keyframes drop{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <form class="lock-card" id="lockForm" novalidate>
+    <img src="/logo-rootahead.png" alt="ROOT Ahead">
+    <h1>RA Admin</h1>
+    <p class="muted">Messages and training for ROOT Ahead riders.</p>
+    <label class="field" for="pw">Admin password</label>
+    <input type="password" id="pw" autocomplete="current-password">
+    <button class="go" type="submit" id="unlockBtn">Unlock</button>
+    <div class="err" id="lockErr" role="alert"></div>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header class="bar">
+    <img src="/logo-rootahead.png" alt="ROOT Ahead">
+    <h1>Admin</h1>
+    <button class="ghost" type="button" id="lockBtn" title="Forget the password on this phone">Lock</button>
+  </header>
+  <nav class="maintabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" data-tab="riders" aria-selected="true">Riders</button>
+    <button type="button" role="tab" data-tab="teams" aria-selected="false">Teams</button>
+    <button type="button" role="tab" data-tab="races" aria-selected="false">Calendar</button>
+    <button type="button" role="tab" data-tab="messages" aria-selected="false">Messages</button>
+    <button type="button" role="tab" data-tab="training" aria-selected="false">Training</button>
+  </nav>
+
+  <!-- RIDERS: set up by the admin; riders sign in with their login code -->
+  <div id="paneRiders">
+    <div id="rdListBox">
+      <div class="rdtools"><button class="go" type="button" id="rdAdd">+ Add rider</button>
+        <input type="search" id="rdSearch" placeholder="Search name, team or code" aria-label="Search riders"></div>
+      <div class="trstatus" id="rdStatus" role="status"></div>
+      <div class="online-sum" id="rdOnline"></div>
+      <div id="rdList"></div>
+      <details class="danger-zone">
+        <summary>Reset all login codes</summary>
+        <p>Every rider gets a new login code and is <b>signed out on every phone</b> at once. They sign in again with their new code. Their plans, feedback and races stay.</p>
+        <label class="field" for="rcConfirmAll">Type RESET to confirm</label>
+        <input type="text" id="rcConfirmAll" autocomplete="off" autocapitalize="characters">
+        <button class="go danger" type="button" id="rcResetAll" disabled>Reset all codes</button>
+        <div class="result" id="rcResetResult" role="status"></div>
+        <div id="rcNewCodes"></div>
+      </details>
+      <details class="danger-zone">
+        <summary>Start with a clean sheet</summary>
+        <p>Deletes <b>all</b> ROOT-Ahead data in the database: plans, feedback, routes, messages, notification sign-ups, statistics. Phones clear their own old data on their next start. This cannot be undone.</p>
+        <label class="check"><input type="checkbox" id="rsKeepRiders"> Keep the riders and teams set up here (names, photos, login codes)</label>
+        <label class="check"><input type="checkbox" id="rsKeepLib"> Keep my own workouts and plan templates</label>
+        <label class="field" for="rsConfirm">Type DELETE to confirm</label>
+        <input type="text" id="rsConfirm" autocomplete="off" autocapitalize="characters">
+        <button class="go danger" type="button" id="rsGo" disabled>Delete all data</button>
+        <div class="result" id="rsResult" role="status"></div>
+      </details>
+    </div>
+    <div id="rdEditor" hidden>
+      <button class="ghost" type="button" id="rdBack">‹ All riders</button>
+      <div class="rd-layout">
+        <div class="rd-photo-col">
+          <div class="rd-photo" id="rdPhoto">+</div>
+          <label class="ghost photo-pick">Choose photo<input type="file" id="rdPhotoInput" accept="image/*"></label>
+          <button class="ghost" type="button" id="rdPhotoRemove" hidden>Remove photo</button>
+        </div>
+        <div class="rd-form">
+          <h2 id="rdTitle" class="rv-name">New rider</h2>
+          <div class="rd-grid">
+            <label>First name<input type="text" id="rdFirst" maxlength="40" autocomplete="off"></label>
+            <label>Last name<input type="text" id="rdLast" maxlength="40" autocomplete="off"></label>
+            <label>Nickname <small class="opt">for fun</small><input type="text" id="rdNick" maxlength="30" autocomplete="off" placeholder="e.g. The Rocket"></label>
+            <label class="teampick">Team <button class="linkbtn" type="button" id="rdManageTeams">manage teams</button><select id="rdTeam"><option value="">No team</option></select></label>
+            <label>Sex<select id="rdSex"><option value="">—</option><option value="F">Female</option><option value="M">Male</option><option value="X">Other</option></select></label>
+            <label class="span2">Home town <small class="opt">start of the rider's routes</small><input type="text" id="rdHome" maxlength="80" autocomplete="off" placeholder="e.g. Lovendegem"></label>
+            <label>Date of birth<input type="date" id="rdBirth"></label>
+            <label>Height (cm)<input type="number" id="rdHeight" min="100" max="230" step="1"></label>
+            <label>Weight (kg)<input type="number" id="rdWeight" min="25" max="200" step="0.1"></label>
+            <label>FTP (watts)<input type="number" id="rdFtp" min="50" max="700" step="1"></label>
+          </div>
+          <label class="field" for="rdNotes">Notes (only you see these)</label>
+          <textarea id="rdNotes" maxlength="300"></textarea>
+          <div class="codebox">
+            <label class="field" for="rdCode">Login code</label>
+            <div class="coderow"><input type="text" id="rdCode" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false">
+              <button class="ghost" type="button" id="rdNewCode">New code</button><button class="ghost" type="button" id="rdCopyCode">Copy</button></div>
+            <button class="ghost wide danger" type="button" id="rdResetCode" hidden>Reset code and sign out on every phone</button>
+            <p class="rv-info" id="rdInfo"></p>
+          </div>
+          <button class="go" type="button" id="rdSave">Save rider</button>
+          <button class="ghost wide danger" type="button" id="rdDelete" hidden>Delete rider</button>
+          <div class="result" id="rdResult" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAMS: riders are linked to a team -->
+  <div id="paneTeams" hidden>
+    <div id="tmListBox">
+      <div class="rdtools"><button class="go" type="button" id="tmAdd">+ Add team</button></div>
+      <div class="trstatus" id="tmStatus" role="status"></div>
+      <div class="tm-grid" id="tmList"></div>
+    </div>
+    <div id="tmEditor" hidden>
+      <button class="ghost" type="button" id="tmBack">‹ All teams</button>
+      <div class="rd-layout">
+        <div class="rd-photo-col">
+          <div class="tm-logo" id="tmLogo">+</div>
+          <label class="ghost photo-pick">Choose logo / team photo<input type="file" id="tmLogoInput" accept="image/*"></label>
+          <button class="ghost" type="button" id="tmLogoRemove" hidden>Remove</button>
+        </div>
+        <div class="rd-form">
+          <h2 class="rv-name" id="tmTitle">New team</h2>
+          <label class="field" for="tmName">Team name</label>
+          <input type="text" id="tmName" maxlength="40" autocomplete="off" placeholder="e.g. U23">
+          <label class="field">Colour</label>
+          <div class="swatches" id="tmSwatches"></div>
+          <input type="color" id="tmColor" value="#fbc120" aria-label="Custom colour">
+          <label class="field" for="tmAbout">Description (optional)</label>
+          <textarea id="tmAbout" maxlength="300" placeholder="e.g. Under-23 road team, coach Pieter"></textarea>
+          <h3 class="members-h">Riders in this team <small id="tmCount"></small></h3>
+          <input type="search" id="tmSearch" placeholder="Search riders" aria-label="Search riders">
+          <div class="people members" id="tmMembers"></div>
+          <button class="go" type="button" id="tmSave">Save team</button>
+          <button class="ghost wide danger" type="button" id="tmDelete" hidden>Delete team</button>
+          <div class="result" id="tmResult" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACES: calendar + who rides -->
+  <div id="paneRaces" hidden>
+    <div id="rcListBox">
+      <div class="rc-add">
+        <button class="go k-race" type="button" id="rcAdd_race">+ Race</button>
+        <button class="go k-training" type="button" id="rcAdd_training">+ Training</button>
+        <button class="go k-event" type="button" id="rcAdd_event">+ Event</button>
+      </div>
+      <div class="rc-filters">
+        <div class="seg kseg" id="rcKindSeg" role="group" aria-label="Which kind">
+          <button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="race" aria-pressed="false">Races</button><button type="button" data-v="training" aria-pressed="false">Trainings</button><button type="button" data-v="event" aria-pressed="false">Events</button>
+        </div>
+        <div class="seg rcseg" id="rcSeg" role="group" aria-label="When">
+          <button type="button" data-v="upcoming" aria-pressed="true">Upcoming</button><button type="button" data-v="past" aria-pressed="false">Past</button><button type="button" data-v="all" aria-pressed="false">All</button>
+        </div>
+      </div>
+      <div class="trstatus" id="rcStatus" role="status"></div>
+      <div id="rcList"></div>
+    </div>
+    <div id="rcEditor" hidden>
+      <button class="ghost" type="button" id="rcBack">‹ Calendar</button>
+      <div class="rc-edhead"><span class="rc-kind big" id="rcKindTag"></span><h2 class="rv-name" id="rcTitle">New race</h2></div>
+      <p class="rc-cancelled-note" id="rcCancelled" hidden></p>
+      <div class="rc-layout">
+        <div class="rc-form">
+          <div class="rd-grid">
+            <label>Date<input type="date" id="rcDateIn"></label>
+            <label>Start time<input type="time" id="rcTimeIn"></label>
+            <label class="span2" id="rcNameLbl">Name<input type="text" id="rcName" maxlength="80"></label>
+            <label>Type<select id="rcType"></select></label>
+            <label>Where<input type="text" id="rcWhere" maxlength="80"></label>
+            <label id="rcDistLbl">Distance (km)<input type="number" id="rcDist" min="1" max="400" step="0.1"></label>
+          </div>
+          <label class="field" for="rcNotes">Notes for the riders (optional)</label>
+          <textarea id="rcNotes" maxlength="300" placeholder="e.g. Club kit, number pick-up from 12:30"></textarea>
+        </div>
+        <div class="rc-pick">
+          <h3 class="members-h">Riders <small id="rcCount"></small></h3>
+          <div class="chips" id="rcTeams"></div>
+          <input type="search" id="rcSearch" placeholder="Search riders" aria-label="Search riders" style="margin-top:8px;">
+          <div class="people members" id="rcRiders"></div>
+        </div>
+      </div>
+      <button class="go" type="button" id="rcSave">Save</button>
+      <div class="rc-actions">
+        <button class="ghost danger" type="button" id="rcCancel" hidden>Cancel this race</button>
+        <button class="ghost" type="button" id="rcRestore" hidden>Race is on again</button>
+        <button class="ghost danger" type="button" id="rcDelete" hidden>Delete for good</button>
+      </div>
+      <div class="result" id="rcResult" role="status"></div>
+    </div>
+  </div>
+
+  <div id="paneMessages" hidden>
+
+  <section aria-labelledby="toTitle">
+    <h2 id="toTitle">Send to</h2>
+    <div class="seg" role="group" aria-label="Recipients">
+      <button type="button" data-mode="all" aria-pressed="true">Everyone</button>
+      <button type="button" data-mode="team" aria-pressed="false">A team</button>
+      <button type="button" data-mode="people" aria-pressed="false">Choose people</button>
+    </div>
+    <div class="pane" id="paneTeam" hidden><div class="chips" id="teamChips"></div></div>
+    <div class="pane" id="panePeople" hidden>
+      <input type="search" id="peopleSearch" placeholder="Search by name or team" aria-label="Search people">
+      <div class="people" id="peopleList"></div>
+    </div>
+    <div class="count" id="count">Loading riders…</div>
+  </section>
+
+  <section aria-labelledby="msgTitleH">
+    <h2 id="msgTitleH">Message</h2>
+    <label class="field" for="title">Title</label>
+    <input type="text" id="title" maxlength="60" placeholder="ROOT Ahead">
+    <label class="field" for="body">Text</label>
+    <textarea id="body" maxlength="300" placeholder="Training moves to 9:00 tomorrow, start at the clubhouse."></textarea>
+    <div class="chars" id="chars">0 / 300</div>
+    <label class="field" for="link">When tapped, open</label>
+    <select id="link">
+      <option value="/">ROOT Ahead (dashboard)</option>
+      <option value="/#track">Track (route planner)</option>
+      <option value="custom">A web address…</option>
+    </select>
+    <input type="text" id="linkCustom" placeholder="www.example.com" inputmode="url" autocapitalize="off" spellcheck="false" hidden style="margin-top:8px;">
+    <div class="link-hint" id="linkHint" hidden></div>
+  </section>
+
+  <section aria-labelledby="prevTitle">
+    <h2 id="prevTitle">Preview</h2>
+    <div class="lockscreen" aria-label="How it looks on a locked phone">
+      <div class="clock" id="pvClock">9:41</div>
+      <div class="date" id="pvDate"></div>
+      <div class="notif">
+        <img src="/icon-192-v2.png" alt="">
+        <div style="flex:1 1 auto;min-width:0;">
+          <div class="top"><span>ROOT-Ahead</span><span>now</span></div>
+          <div class="t" id="pvTitle">ROOT Ahead</div>
+          <div class="b empty" id="pvBody">Your message appears here.</div>
+        </div>
+      </div>
+    </div>
+    <button class="go" type="button" id="sendBtn" disabled>Send</button>
+    <div class="result" id="result" role="status"></div>
+  </section>
+
+  <section aria-labelledby="sentTitle">
+    <h2 id="sentTitle">Sent</h2>
+    <ul class="log" id="log"><li class="empty-note">Nothing sent yet.</li></ul>
+  </section>
+  </div>
+
+  <div id="paneTraining" hidden>
+    <div class="seg sub" id="trSeg" role="group" aria-label="Training">
+      <button type="button" data-sub="riders" aria-pressed="true">Rider plans</button>
+      <button type="button" data-sub="build" aria-pressed="false">Build plan</button>
+      <button type="button" data-sub="workouts" aria-pressed="false">Workouts</button>
+      <button type="button" data-sub="templates" aria-pressed="false">Plan templates</button>
+    </div>
+    <div class="trstatus" id="trStatus" role="status"></div>
+
+    <!-- riders -->
+    <div id="subRiders">
+      <div id="riderListBox">
+        <input type="search" id="riderSearch" placeholder="Search by name or team" aria-label="Search riders" style="margin-top:14px;">
+        <ul class="rlist" id="riderList"></ul>
+        <div id="riderTable" hidden></div>
+        <details class="danger-zone">
+          <summary>Delete all training plans</summary>
+          <p>Deletes the plan of <b>every</b> rider, with their done/skipped feedback, scores, routes linked to plan days and earlier plans. Riders, teams, races and your own workouts and templates stay. Riders see "Your coach makes your training plan" until you give them a new plan. This cannot be undone.</p>
+          <label class="field" for="dpConfirm">Type DELETE to confirm</label>
+          <input type="text" id="dpConfirm" autocomplete="off" autocapitalize="characters">
+          <button class="go danger" type="button" id="dpGo" disabled>Delete all plans</button>
+          <div class="result" id="dpResult" role="status"></div>
+        </details>
+      </div>
+      <div id="riderView" hidden>
+        <button class="ghost" type="button" id="rvBack">‹ All riders</button>
+        <h2 class="rv-name" id="rvName"></h2>
+        <p class="rv-info" id="rvInfo"></p>
+        <div class="permrow"><div><b>Rider may make their own plan</b><small id="rvPermTxt">Off: only you make and change this rider's plan.</small></div>
+          <button class="switch" type="button" role="switch" id="rvPerm" aria-checked="false" aria-label="Rider may make their own plan"></button></div>
+        <div class="rvtools"><button class="ghost" type="button" id="rvMake">Make a plan for this rider</button><button class="ghost" type="button" id="rvCopy">Copy this plan to other riders</button></div>
+        <div id="rvPlanBox" hidden>
+          <label class="field" for="rvNote">Note for the rider (shown above their plan)</label>
+          <textarea id="rvNote" maxlength="600" placeholder="e.g. Keep Tuesday easy if your legs are still tired."></textarea>
+          <div class="weeknav mob"><button class="ghost" type="button" id="rvPrev" aria-label="Previous week">‹</button><b id="rvWeekLabel"></b><button class="ghost" type="button" id="rvNext" aria-label="Next week">›</button></div>
+          <div id="rvWeek"></div>
+          <p class="total" id="rvTotals"></p>
+          <label class="check"><input type="checkbox" id="rvNotify" checked> Notify the rider (their app updates right away)</label>
+          <button class="go" type="button" id="rvSave">Save plan</button>
+          <button class="ghost wide" type="button" id="rvToTemplate">Save this plan as a template</button>
+          <button class="ghost wide danger" type="button" id="rvDeletePlan">Delete this plan</button>
+          <div class="result" id="rvResult" role="status"></div>
+        </div>
+        <div class="assign">
+          <h3>Give a plan template</h3>
+          <div class="two"><select id="rvTemplate" aria-label="Template"></select><input type="date" id="rvStart" aria-label="Start date (a Monday)"></div>
+          <button class="ghost wide" type="button" id="rvAssign">Use this template from that week</button>
+          <div class="result" id="rvAssignResult" role="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- build a plan and give it to riders -->
+    <div id="subBuild" hidden>
+      <div class="bstep">
+        <h3><span class="sn">1</span>Who is the plan for?</h3>
+        <div class="chips" id="bdTeams"></div>
+        <input type="search" id="bdSearch" placeholder="Search riders" aria-label="Search riders" style="margin-top:10px;">
+        <div class="people members" id="bdRiders"></div>
+        <p class="bd-picked" id="bdPicked"></p>
+      </div>
+      <div class="bstep">
+        <h3><span class="sn">2</span>Availability and goal</h3>
+        <p class="bd-hint" id="bdPrefill">The same questions a rider answers for their own plan.</p>
+        <div class="q"><span class="ql">Riding days</span>
+          <div class="daychips" id="bdDays" role="group" aria-label="Riding days"><button type="button" data-v="0">Mon</button><button type="button" data-v="1">Tue</button><button type="button" data-v="2">Wed</button><button type="button" data-v="3">Thu</button><button type="button" data-v="4">Fri</button><button type="button" data-v="5">Sat</button><button type="button" data-v="6">Sun</button></div></div>
+        <div class="q"><span class="ql">Hours per week <b id="bdHoursVal">6 h</b></span><input type="range" id="bdHours" min="2" max="20" step="1" value="6" aria-label="Hours per week"></div>
+        <div class="q"><span class="ql">Level</span>
+          <div class="segbtns" id="bdLevel" role="group" aria-label="Level"><button type="button" data-v="beginner">Beginner</button><button type="button" data-v="intermediate">Intermediate</button><button type="button" data-v="advanced">Advanced</button></div></div>
+        <div class="q"><span class="ql">Goal</span>
+          <div class="segbtns four" id="bdGoal" role="group" aria-label="Goal"><button type="button" data-v="fitness">General fitness</button><button type="button" data-v="endurance">Longer rides</button><button type="button" data-v="race">Race / event</button><button type="button" data-v="climb">Climbing</button></div></div>
+        <div class="q two"><label>Race or event (optional)<input type="date" id="bdEventDate"></label><label>Event name<input type="text" id="bdEventName" maxlength="60" placeholder="e.g. Cyclocross Eeklo"></label></div>
+        <div class="q two"><label>Starts the week of<input type="date" id="bdStartDate"></label><label>Length <small class="opt">(without an event)</small><select id="bdWeeks"><option value="4">4 weeks</option><option value="6">6 weeks</option><option value="8" selected>8 weeks</option><option value="10">10 weeks</option><option value="12">12 weeks</option><option value="16">16 weeks</option></select></label></div>
+        <div class="q"><span class="ql">How to fill the weeks</span>
+          <div class="segbtns four" id="bdHow" role="group" aria-label="How to fill the weeks"><button type="button" data-v="suggest">Suggestion</button><button type="button" data-v="template">Template</button><button type="button" data-v="copy">Copy a plan</button><button type="button" data-v="basic">Basic</button></div>
+          <p class="bd-hint" id="bdHowHint"></p>
+          <select id="bdTplSel" aria-label="Template" hidden></select><select id="bdCopySel" aria-label="Rider plan to copy" hidden></select></div>
+        <button class="go" type="button" id="bdStart">Make the plan</button>
+        <div class="result" id="bdStartMsg" role="status"></div>
+      </div>
+      <div id="bdEdit" hidden>
+        <div class="bstep">
+          <h3><span class="sn">3</span>Fill in the weeks</h3>
+          <p class="bd-summary" id="bdSummary"></p>
+          <label class="field" for="bdName">Name (to recognise it, and for saving as a template)</label>
+          <input type="text" id="bdName" maxlength="60" placeholder="e.g. Winter base U23">
+          <label class="field" for="bdNote">Note for the rider (shown above their plan)</label>
+          <textarea id="bdNote" maxlength="600"></textarea>
+          <div class="weeknav mob"><button class="ghost" type="button" id="bdPrev" aria-label="Previous week">‹</button><b id="bdWeekLabel"></b><button class="ghost" type="button" id="bdNext" aria-label="Next week">›</button></div>
+          <div class="two mob"><label class="inline">Phase <select id="bdPhase"><option value="base">Base</option><option value="build">Build</option><option value="peak">Peak</option><option value="recovery">Recovery</option><option value="taper">Taper</option></select></label>
+            <span class="weekbtns"><button class="ghost" type="button" id="bdAddWeek">+ Week</button><button class="ghost" type="button" id="bdRemoveWeek">− Week</button></span></div>
+          <div class="weektools mob"><button class="ghost" type="button" id="bdCopyNext">Copy week → next</button><button class="ghost" type="button" id="bdClearWeek">Clear week</button></div>
+          <div id="bdWeek"></div>
+          <p class="total" id="bdTotals"></p>
+          <button class="ghost wide" type="button" id="bdSaveTpl">Save as template</button>
+          <div class="result" id="bdTplResult" role="status"></div>
+        </div>
+        <div class="bstep">
+          <h3><span class="sn">4</span>Give the plan</h3>
+          <p class="bd-summary" id="bdGiveSummary"></p>
+          <label class="check"><input type="checkbox" id="bdNotify" checked> Notify the rider (their app updates right away)</label>
+          <button class="go" type="button" id="bdGive" disabled>Pick a rider in step 1</button>
+          <div class="result" id="bdResult" role="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- own workouts -->
+    <div id="subWorkouts" hidden>
+      <div id="woListBox">
+        <button class="ghost wide" type="button" id="woNew" style="margin-top:14px;">+ New workout</button>
+        <ul class="rlist" id="woList"></ul>
+      </div>
+      <div id="woEditor" hidden>
+        <div class="wo-main">
+        <button class="ghost" type="button" id="woBack">‹ All workouts</button>
+        <label class="field" for="woTitle">Name</label>
+        <input type="text" id="woTitle" maxlength="60" placeholder="e.g. 4 × 8 min threshold">
+        <label class="field" for="woAbout">What the rider should know</label>
+        <textarea id="woAbout" maxlength="300" placeholder="e.g. Do the efforts on a flat stretch, stay seated."></textarea>
+        <label class="field">Steps</label>
+        <div class="stephead"><span>Name</span><span>Min</span><span>Zone</span></div>
+        <div id="woSteps"></div>
+        <div class="two"><button class="ghost" type="button" id="woAdd">+ Step</button><button class="ghost" type="button" id="woRepeat">+ Intervals…</button></div>
+        </div>
+        <div class="wo-side">
+        <div class="profile" id="woProfile" aria-hidden="true"></div>
+        <div class="total" id="woTotal"></div>
+        <button class="go" type="button" id="woSave">Save workout</button>
+        <button class="ghost wide danger" type="button" id="woDelete" hidden>Delete workout</button>
+        <div class="result" id="woResult" role="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- plan templates -->
+    <div id="subTemplates" hidden>
+      <div id="tplListBox">
+        <button class="ghost wide" type="button" id="tplNew" style="margin-top:14px;">+ New plan template</button>
+        <ul class="rlist" id="tplList"></ul>
+      </div>
+      <div id="tplEditor" hidden>
+        <button class="ghost" type="button" id="tplBack">‹ All templates</button>
+        <label class="field" for="tplName">Name</label>
+        <input type="text" id="tplName" maxlength="60" placeholder="e.g. Winter base, 8 weeks">
+        <label class="field" for="tplAbout">Note for riders who get this plan</label>
+        <textarea id="tplAbout" maxlength="300"></textarea>
+        <div class="weeknav mob"><button class="ghost" type="button" id="tplPrev" aria-label="Previous week">‹</button><b id="tplWeekLabel"></b><button class="ghost" type="button" id="tplNext" aria-label="Next week">›</button></div>
+        <div class="two mob"><label class="inline">Phase <select id="tplPhase"><option value="base">Base</option><option value="build">Build</option><option value="peak">Peak</option><option value="recovery">Recovery</option><option value="taper">Taper</option></select></label>
+          <span class="weekbtns"><button class="ghost" type="button" id="tplAddWeek">+ Week</button><button class="ghost" type="button" id="tplRemoveWeek">− Week</button></span></div>
+        <div id="tplWeek"></div>
+        <p class="total" id="tplTotals"></p>
+        <button class="go" type="button" id="tplSave">Save template</button>
+        <button class="ghost wide danger" type="button" id="tplDelete" hidden>Delete template</button>
+        <div class="result" id="tplResult" role="status"></div>
+        <div class="assign">
+          <h3>Give this plan to a rider</h3>
+          <div class="two"><select id="tplRider" aria-label="Rider"></select><input type="date" id="tplStart" aria-label="Start date (a Monday)"></div>
+          <button class="ghost wide" type="button" id="tplAssign">Save and give to this rider</button>
+          <div class="result" id="tplAssignResult" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  /* ================= IN-APP DIALOGS (instead of the browser's own pop-ups) =================
+     uiConfirm(text, opts) → Promise<boolean>   uiAlert(text) → Promise   uiPrompt(text, value) → Promise<string|null>
+     uiForm(title, fields) → Promise<object|null>   (fields: [{ key, label, value, type, options }])
+     The OK button is named after the action ("Delete", "Yes, cancel race"…); risky actions get a red button. */
+  var uiDlg = null;
+  function uiBuild(){
+    if (uiDlg) return uiDlg;
+    var o = document.createElement('div'); o.className = 'ui-dlg'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+    o.innerHTML = '<div class="ui-card"><h3 class="ui-title"></h3><div class="ui-text"></div><div class="ui-fields"></div><div class="ui-btns">' +
+      '<button type="button" class="ui-cancel"></button><button type="button" class="ui-ok"></button></div></div>';
+    document.body.appendChild(o); uiDlg = o; return o;
+  }
+  function uiLabels(text){
+    var w = String(text).trim().split(/\s+/)[0].replace(/[^A-Za-z]/g, '').toLowerCase();
+    var map = { 'delete':['Delete','Keep it',1], remove:['Remove','Keep it',1], replace:['Replace','Keep current',0], send:['Send','Not now',0],
+      give:['Give plan','Not now',0], overwrite:['Overwrite','Keep it',1], make:['Yes, clear it','Keep it',1], cancel:['Yes, cancel race','No, keep it',1],
+      sign:['Sign out','Stay signed in',1], your:['Continue','Keep my plan',1] };
+    var m = map[w] || ['OK','Cancel',0];
+    return { ok: m[0], cancel: m[1], danger: !!m[2] };
+  }
+  function uiOpen(cfg){
+    var o = uiBuild();
+    return new Promise(function(resolve){
+      var card = o.querySelector('.ui-card'), ok = o.querySelector('.ui-ok'), cancel = o.querySelector('.ui-cancel');
+      var title = o.querySelector('.ui-title'), txt = o.querySelector('.ui-text'), fields = o.querySelector('.ui-fields');
+      title.textContent = cfg.title || ''; title.hidden = !cfg.title;
+      txt.textContent = cfg.text || ''; txt.hidden = !cfg.text;
+      fields.innerHTML = '';
+      var inputs = {};
+      (cfg.fields || []).forEach(function(f, i){
+        var l = document.createElement('label'); l.className = 'ui-field';
+        var s = document.createElement('span'); s.textContent = f.label || ''; l.appendChild(s);
+        var inp;
+        if (f.options){ inp = document.createElement('select'); f.options.forEach(function(op){ var x = document.createElement('option'); x.value = op[0]; x.textContent = op[1]; inp.appendChild(x); }); }
+        else { inp = document.createElement('input'); inp.type = f.type || 'text'; if (f.step) inp.step = f.step; if (f.min != null) inp.min = f.min; if (f.max != null) inp.max = f.max; }
+        inp.value = f.value == null ? '' : f.value; inputs[f.key || i] = inp; l.appendChild(inp); fields.appendChild(l);
+      });
+      ok.textContent = cfg.ok || 'OK'; ok.className = 'ui-ok' + (cfg.danger ? ' danger' : '');
+      cancel.textContent = cfg.cancel || 'Cancel'; cancel.hidden = !!cfg.noCancel;
+      var last = document.activeElement;
+      function done(val){
+        o.classList.remove('open'); ok.onclick = cancel.onclick = null; o.onclick = null; document.removeEventListener('keydown', key, true);
+        try{ if (last && last.focus) last.focus(); }catch(e){}
+        resolve(val);
+      }
+      function value(){ if (!cfg.fields) return true; var r = {}; Object.keys(inputs).forEach(function(k){ r[k] = inputs[k].value; }); return r; }
+      function key(e){
+        if (e.key === 'Escape'){ e.preventDefault(); done(cfg.fields ? null : false); }
+        else if (e.key === 'Enter' && (e.target.tagName === 'INPUT' || e.target === ok)){ e.preventDefault(); done(value()); }
+      }
+      ok.onclick = function(){ done(value()); };
+      cancel.onclick = function(){ done(cfg.fields ? null : false); };
+      o.onclick = function(e){ if (e.target === o) done(cfg.fields ? null : false); };
+      document.addEventListener('keydown', key, true);
+      o.classList.add('open');
+      setTimeout(function(){ var first = fields.querySelector('input,select'); (first || ok).focus(); if (first && first.select) first.select(); }, 30);
+    });
+  }
+  function uiConfirm(text, opts){ var l = uiLabels(text); opts = opts || {}; return uiOpen({ title: opts.title, text: text, ok: opts.ok || l.ok, cancel: opts.cancel || l.cancel, danger: opts.danger != null ? opts.danger : l.danger }); }
+  function uiAlert(text, opts){ opts = opts || {}; return uiOpen({ title: opts.title, text: text, ok: opts.ok || 'OK', noCancel: true }); }
+  function uiPrompt(text, value, opts){ opts = opts || {}; return uiOpen({ title: opts.title, text: opts.title ? text : '', fields: [{ key:'v', label: opts.title ? (opts.label || '') : text, value: value, type: opts.type }], ok: opts.ok || 'OK', cancel: 'Cancel' })
+    .then(function(r){ return r ? r.v : null; }); }
+  function uiForm(title, fields, opts){ opts = opts || {}; return uiOpen({ title: title, text: opts.text, fields: fields, ok: opts.ok || 'OK', cancel: opts.cancel || 'Cancel' }); }
+
+  var KEY_STORE = 'ra-admin-key';
+  var key = '';
+  var users = [];            // from /api/admin-users
+  var mode = 'all', team = '';
+  var $ = function(id){ return document.getElementById(id); };
+
+  function api(path, opts){
+    opts = opts || {};
+    opts.headers = Object.assign({ 'x-admin-key': key }, opts.headers || {});
+    return fetch(path, opts).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(d){ return { ok: r.ok, status: r.status, data: d }; });
+    });
+  }
+  function name(u){ return (u.firstName || u.lastName) ? ((u.firstName || '') + ' ' + (u.lastName || '')).trim() : 'Unnamed device'; }
+  function reachable(){ return users.filter(function(u){ return u.pushEnabled; }); }
+
+  /* ---- lock / unlock (password remembered on this phone, like Blendroom) ---- */
+  function showApp(){ $('lock').hidden = true; $('app').hidden = false; loadAll();
+    var start = ['#training','#messages','#teams','#races'].indexOf(location.hash) !== -1 ? location.hash.slice(1) : 'riders';
+    setTimeout(function(){ showMainTab(start); }, 0); }
+  function showLock(msg){ $('app').hidden = true; $('lock').hidden = false; $('lockErr').textContent = msg || ''; $('pw').value = ''; }
+  $('lockForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    key = $('pw').value.trim();
+    if (!key){ $('lockErr').textContent = 'Enter the admin password.'; return; }
+    $('unlockBtn').disabled = true; $('lockErr').textContent = '';
+    api('/api/admin-users').then(function(res){
+      $('unlockBtn').disabled = false;
+      if (res.status === 401){ $('lockErr').textContent = 'That password is not correct.'; return; }
+      if (!res.ok){ $('lockErr').textContent = (res.data && res.data.error) || 'The server did not answer. Try again.'; return; }
+      try{ localStorage.setItem(KEY_STORE, key); }catch(x){}
+      users = res.data.users || []; showApp();
+    }).catch(function(){ $('unlockBtn').disabled = false; $('lockErr').textContent = 'No connection. Check your internet and try again.'; });
+  });
+  $('lockBtn').addEventListener('click', function(){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} key = ''; showLock(); });
+
+  /* ---- recipients ---- */
+  function setMode(m){
+    mode = m;
+    Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === m)); });
+    $('paneTeam').hidden = m !== 'team'; $('panePeople').hidden = m !== 'people';
+    update();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function(b){ b.addEventListener('click', function(){ setMode(b.dataset.mode); }); });
+
+  function renderTeams(){
+    var box = $('teamChips'); box.innerHTML = '';
+    var teams = [];
+    reachable().forEach(function(u){ if (u.team && teams.indexOf(u.team) === -1) teams.push(u.team); });
+    teams.sort();
+    if (!teams.length){ box.innerHTML = '<span class="empty-note">No team has notifications turned on yet.</span>'; return; }
+    if (teams.indexOf(team) === -1) team = teams[0];
+    teams.forEach(function(t){
+      var n = reachable().filter(function(u){ return u.team === t; }).length;
+      var c = document.createElement('button'); c.type = 'button'; c.className = 'chip';
+      c.textContent = t + ' (' + n + ')'; c.setAttribute('aria-pressed', String(t === team));
+      c.addEventListener('click', function(){ team = t; renderTeams(); update(); });
+      box.appendChild(c);
+    });
+  }
+  function renderPeople(){
+    var box = $('peopleList'), q = $('peopleSearch').value.trim().toLowerCase();
+    var keep = {}; Array.prototype.forEach.call(box.querySelectorAll('input:checked'), function(c){ keep[c.value] = true; });
+    box.innerHTML = '';
+    var list = users.slice().sort(function(a, b){ return (b.pushEnabled - a.pushEnabled) || name(a).localeCompare(name(b)); })
+      .filter(function(u){ return !q || (name(u) + ' ' + (u.team || '')).toLowerCase().indexOf(q) !== -1; });
+    if (!list.length){ box.innerHTML = '<div class="empty-note" style="padding:12px 14px;">' + (users.length ? 'Nobody matches that search.' : 'No riders yet.') + '</div>'; return; }
+    list.forEach(function(u){
+      var l = document.createElement('label'); if (!u.pushEnabled) l.className = 'off';
+      var c = document.createElement('input'); c.type = 'checkbox'; c.value = u.deviceId; c.disabled = !u.pushEnabled; c.checked = !!keep[u.deviceId];
+      c.addEventListener('change', update);
+      var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = name(u);
+      var sub = document.createElement('span'); sub.className = 'sub';
+      sub.textContent = (u.team || 'No team') + (u.pushEnabled ? (u.device ? ', ' + u.device : '') : ', notifications off');
+      nm.appendChild(sub); l.appendChild(c); l.appendChild(nm); box.appendChild(l);
+    });
+  }
+  $('peopleSearch').addEventListener('input', renderPeople);
+  function targets(){
+    if (mode === 'all') return 'all';
+    if (mode === 'team') return reachable().filter(function(u){ return u.team === team; }).map(function(u){ return u.deviceId; });
+    return Array.prototype.map.call($('peopleList').querySelectorAll('input:checked'), function(c){ return c.value; });
+  }
+  function targetCount(){ var t = targets(); return t === 'all' ? reachable().length : t.length; }
+
+  /* ---- message + preview ---- */
+  function update(){
+    var title = $('title').value.trim() || 'ROOT Ahead', body = $('body').value;
+    $('pvTitle').textContent = title;
+    $('pvBody').textContent = body.trim() || 'Your message appears here.';
+    $('pvBody').classList.toggle('empty', !body.trim());
+    $('chars').textContent = body.length + ' / 300';
+    var n = targetCount(), total = users.length, on = reachable().length;
+    $('count').textContent = on + ' of ' + total + ' riders have notifications on' +
+      (mode === 'all' ? '.' : mode === 'team' ? (team ? '. Team ' + team + ': ' + n + '.' : '.') : '. Chosen: ' + n + '.');
+    $('sendBtn').textContent = n ? 'Send to ' + n + ' device' + (n === 1 ? '' : 's') : 'Send';
+    $('sendBtn').disabled = !n || !body.trim() || !linkValue();
+    updateLinkHint();
+  }
+  ['title', 'body', 'linkCustom'].forEach(function(id){ $(id).addEventListener('input', update); });
+  $('link').addEventListener('change', function(){ $('linkCustom').hidden = this.value !== 'custom'; update(); });
+  // Accepts "www.winsol.eu", "winsol.eu/page" or a full https:// address
+  function linkValue(){
+    if ($('link').value !== 'custom') return $('link').value;
+    var v = $('linkCustom').value.trim();
+    if (/^http:\/\//i.test(v)) v = 'https://' + v.slice(7);          // phones block plain http
+    else if (!/^https:\/\//i.test(v)) v = 'https://' + v;
+    return /^https:\/\/[^\s\/]+\.[a-z]{2,}(\/\S*)?$/i.test(v) ? v : '';
+  }
+  function updateLinkHint(){
+    var h = $('linkHint'), custom = $('link').value === 'custom', raw = $('linkCustom').value.trim(), v = linkValue();
+    h.hidden = !custom;
+    if (!custom) return;
+    h.className = 'link-hint' + (raw && !v ? ' bad' : '');
+    h.textContent = !raw ? 'Type an address, for example www.winsol.eu' : v ? 'Opens ' + v : 'That doesn\u2019t look like a web address.';
+  }
+  (function clock(){
+    var d = new Date();
+    $('pvClock').textContent = d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }).replace(/\s?[AP]M$/i, '');
+    $('pvDate').textContent = d.toLocaleDateString([], { weekday:'long', day:'numeric', month:'long' });
+    setTimeout(clock, 30000);
+  })();
+
+  /* ---- send ---- */
+  $('sendBtn').addEventListener('click', async function(){
+    var t = targets(), n = targetCount(), btn = this;
+    if (!(await uiConfirm('Send this message to ' + n + ' device' + (n === 1 ? '' : 's') + '?'))) return;
+    btn.disabled = true; $('result').className = 'result'; $('result').textContent = 'Sending…';
+    api('/api/admin-message', { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ deviceIds: t, title: $('title').value.trim(), body: $('body').value.trim(), url: linkValue() }) })
+      .then(function(res){
+        if (res.status === 401){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} showLock('The admin password changed. Unlock again.'); return; }
+        if (!res.ok){ $('result').className = 'result no'; $('result').textContent = (res.data && res.data.error) || 'Sending failed. Try again.'; update(); return; }
+        var d = res.data;
+        $('result').className = 'result ' + (d.sent ? 'ok' : 'no');
+        $('result').textContent = 'Delivered to ' + d.sent + ' of ' + (d.sent + d.failed + d.skipped) + '.' +
+          (d.removed ? ' ' + d.removed + ' device' + (d.removed === 1 ? ' had' : 's had') + ' removed the app and ' + (d.removed === 1 ? 'was' : 'were') + ' taken off the list.' : '');
+        if (d.sent) $('body').value = '';
+        loadAll();
+      }).catch(function(){ $('result').className = 'result no'; $('result').textContent = 'No connection. The message was not sent.'; update(); });
+  });
+
+  /* ---- data ---- */
+  function renderLog(msgs){
+    var ul = $('log'); ul.innerHTML = '';
+    if (!msgs.length){ ul.innerHTML = '<li class="empty-note">Nothing sent yet.</li>'; return; }
+    var names = {}; users.forEach(function(u){ names[u.deviceId] = name(u); });
+    msgs.forEach(function(m){
+      var li = document.createElement('li');
+      var msg = document.createElement('div'); msg.className = 'msg';
+      msg.textContent = (m.title && m.title !== 'ROOT Ahead' ? m.title + '\n' : '') + m.body;
+      var meta = document.createElement('div'); meta.className = 'meta';
+      var who = m.everyone ? 'everyone' : (m.to || []).map(function(id){ return names[id] || 'a removed device'; }).slice(0, 5).join(', ') + ((m.to || []).length > 5 ? ' and ' + ((m.to || []).length - 5) + ' more' : '');
+      meta.textContent = new Date(m.at).toLocaleString([], { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) +
+        ', to ' + who + ', delivered ' + m.sent + ' of ' + (m.to || []).length;
+      li.appendChild(msg); li.appendChild(meta); ul.appendChild(li);
+    });
+  }
+  function loadAll(){
+    api('/api/admin-users').then(function(res){
+      if (res.status === 401){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} showLock('Unlock again.'); return; }
+      if (!res.ok){ $('count').textContent = (res.data && res.data.error) || 'Could not load riders.'; return; }
+      users = res.data.users || [];
+      renderTeams(); renderPeople(); update();
+      return api('/api/admin-message').then(function(r2){ if (r2.ok) renderLog(r2.data.messages || []); });
+    }).catch(function(){ $('count').textContent = 'No connection. Pull down or reopen to try again.'; });
+  }
+
+  /*@@TRAIN_CORE_START@@*/
+  /* ================= TRAIN: plan generator + workout library =================
+     The app suggests a plan from the rider's goal, hours, days and level;
+     the coach can change any day in Admin → Training. Plans are periodised:
+     Base → Build → Peak → Taper (when there is an event), with an easier
+     recovery week every 4th week. Targets use power zones (% of FTP) when an
+     FTP is known, otherwise effort (RPE 1–10). */
+  var TRAIN_ZONES = {
+    Z1: { name:'Recovery',  pct:[0,55],    rpe:'2/10, very easy',          color:'#6f8fa6' },
+    Z2: { name:'Endurance', pct:[56,75],   rpe:'3–4/10, you can chat',      color:'#6b9c5b' },
+    Z3: { name:'Tempo',     pct:[76,87],   rpe:'5–6/10, short sentences',   color:'#c9b04a' },
+    SS: { name:'Sweet spot',pct:[88,94],   rpe:'7/10, a few words',         color:'#e09a3c' },
+    Z4: { name:'Threshold', pct:[95,105],  rpe:'8/10, hard but steady',     color:'#c1611d' },
+    Z5: { name:'VO2max',    pct:[106,120], rpe:'9/10, very hard',           color:'#a13a2f' },
+    Z6: { name:'Sprint',    pct:[121,200], rpe:'10/10, all out',            color:'#7e2a5a' }
+  };
+  var TRAIN_TYPES = {
+    rest:   { title:'Rest day',         zone:null, about:'No riding. Recovery is where you get stronger.' },
+    rec:    { title:'Recovery spin',    zone:'Z1', about:'Very easy spinning to loosen the legs. Flat route, light gear.' },
+    end:    { title:'Endurance ride',   zone:'Z2', about:'Steady aerobic riding. Keep it conversational the whole way.' },
+    long:   { title:'Long ride',        zone:'Z2', about:'Your longest ride of the week. Steady, eat and drink every 20–30 minutes.' },
+    tempo:  { title:'Tempo',            zone:'Z3', about:'Blocks of comfortably hard riding. Builds aerobic power.' },
+    ss:     { title:'Sweet spot',       zone:'SS', about:'Just under threshold: the most efficient way to raise your FTP.' },
+    thr:    { title:'Threshold',        zone:'Z4', about:'Long efforts at the edge of what you can hold for an hour.' },
+    vo2:    { title:'VO2max intervals', zone:'Z5', about:'Short, very hard efforts. Raises your ceiling.' },
+    hills:  { title:'Hill repeats',     zone:'Z5', about:'Hard climbs, easy descents. Pick a 2–4 minute climb.' },
+    sprint: { title:'Openers',          zone:'Z6', about:'Short ride with a few sharp efforts to wake the legs before an event.' },
+    event:  { title:'Event day',        zone:'Z4', about:'Race or event day. Warm up well and enjoy it.' }
+  };
+  var TRAIN_TYPE_ORDER = ['rest','rec','end','long','tempo','ss','thr','vo2','hills','sprint','event'];
+  var TRAIN_GOALS = { fitness:'General fitness', endurance:'Longer rides', race:'Race / event', climb:'Climbing' };
+  var TRAIN_PHASES = { base:'Base', build:'Build', peak:'Peak', recovery:'Recovery', taper:'Taper' };
+  var TRAIN_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  function tIso(dt){ return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
+  function tParse(s){ var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function tAddDays(s, n){ var d = tParse(s); d.setDate(d.getDate() + n); return tIso(d); }
+  function tMonday(dt){ var d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
+  function tRound5(x){ return Math.max(0, Math.round(x / 5) * 5); }
+  function tClamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+
+  // Steps of a workout: [{label, min, zone}]
+  function trainSteps(type, min){
+    if (type === 'rest' || !min) return [];
+    if (type === 'rec') return [{ label:'Easy spin', min:min, zone:'Z1' }];
+    if (type === 'end' || type === 'long'){
+      var s = [{ label:'Warm-up', min:10, zone:'Z1' }, { label:'Steady endurance', min:Math.max(5, min - 15), zone:'Z2' }, { label:'Cool-down', min:5, zone:'Z1' }];
+      if (type === 'long' && min >= 150){ s[1].min -= 20; s.splice(2, 0, { label:'Finish with tempo', min:20, zone:'Z3' }); }
+      return s;
+    }
+    if (type === 'event') return [{ label:'Warm-up', min:20, zone:'Z2' }, { label:'Event', min:Math.max(10, min - 20), zone:'Z4' }];
+    var main = { tempo:{ on:15, off:5, zone:'Z3', lo:1, hi:4 }, ss:{ on:12, off:5, zone:'SS', lo:2, hi:5 },
+                 thr:{ on:min >= 80 ? 20 : 12, off:8, zone:'Z4', lo:2, hi:3 }, vo2:{ on:4, off:4, zone:'Z5', lo:3, hi:6 },
+                 hills:{ on:3, off:4, zone:'Z5', lo:4, hi:8 }, sprint:{ on:1, off:3, zone:'Z4', lo:3, hi:3 } }[type];
+    var wu = 15, cd = 10, room = min - wu - cd;
+    var reps = tClamp(Math.floor((room + main.off) / (main.on + main.off)), main.lo, main.hi);
+    var steps = [{ label:'Warm-up', min:wu, zone:'Z2' }];
+    for (var i = 0; i < reps; i++){
+      steps.push({ label:(type === 'hills' ? 'Climb ' : 'Effort ') + (i + 1) + ' of ' + reps, min:main.on, zone:main.zone });
+      if (i < reps - 1) steps.push({ label:type === 'hills' ? 'Easy descent' : 'Easy', min:main.off, zone:'Z1' });
+    }
+    if (type === 'sprint') steps.push({ label:'3 × 15 s sprint, 2 min easy between', min:7, zone:'Z6' });
+    var used = steps.reduce(function(t, x){ return t + x.min; }, 0) + cd;
+    if (min - used >= 5) steps.push({ label:'Endurance', min:min - used, zone:'Z2' });
+    else if (min - used > 0) cd += min - used;
+    steps.push({ label:'Cool-down', min:cd, zone:'Z1' });
+    return steps;
+  }
+  function trainTarget(zone, ftp){
+    var z = TRAIN_ZONES[zone]; if (!z) return '';
+    if (ftp > 0){
+      var lo = Math.round(ftp * z.pct[0] / 100), hi = Math.round(ftp * z.pct[1] / 100);
+      return zone === 'Z1' ? 'under ' + hi + ' W' : zone === 'Z6' ? 'over ' + lo + ' W' : lo + '–' + hi + ' W';
+    }
+    return 'effort ' + z.rpe;
+  }
+
+  // The suggestion. s = { goal, hours, days:[0..6] (0 = Monday), level, eventDate, eventName, ftp }
+  function generateTrainPlan(s, today){
+    today = today || new Date();
+    var start = tIso(tMonday(today));
+    var weeks = Math.max(1, Math.min(16, parseInt(s.weeks, 10) || 8)), hasEvent = /^\d{4}-\d{2}-\d{2}$/.test(s.eventDate || '') && s.eventDate >= tIso(today);
+    if (hasEvent){
+      var span = Math.round((tParse(s.eventDate) - tParse(start)) / 86400000);
+      if (span >= 16 * 7) hasEvent = false, weeks = 16;   // event further than 16 weeks: plan the first 16, taper comes in a later plan
+      else weeks = Math.floor(span / 7) + 1;               // the plan ends with the event week
+    }
+    // phases
+    var phases = [];
+    for (var w = 0; w < weeks; w++) phases.push('base');
+    if (hasEvent){
+      var peakN = weeks >= 8 ? 2 : weeks >= 3 ? 1 : 0, rest = Math.max(0, weeks - 1 - peakN), buildN = weeks <= 3 ? rest : Math.round(rest * 0.45);
+      for (w = 0; w < weeks; w++){
+        phases[w] = w === weeks - 1 ? 'taper' : w >= weeks - 1 - peakN ? 'peak' : w >= weeks - 1 - peakN - buildN ? 'build' : 'base';
+      }
+    } else {
+      for (w = Math.ceil(weeks / 2); w < weeks; w++) phases[w] = 'build';
+    }
+    for (w = 3; w < weeks; w += 4) if (phases[w] !== 'taper' && phases[w] !== 'peak') phases[w] = 'recovery';
+    if (s.recoveryFirst && weeks > 1) phases[0] = 'recovery';   // just after an event: start easy
+
+    var avail = (s.days || []).slice().sort(function(a, b){ return a - b; });
+    if (!avail.length) avail = [1, 3, 5];
+    var longDay = avail.indexOf(6) !== -1 ? 6 : avail.indexOf(5) !== -1 ? 5 : avail[avail.length - 1];
+    var others = avail.filter(function(d){ return d !== longDay; });
+    var kBase = { beginner:1, intermediate:2, advanced:3 }[s.level] || 2;
+    var longCap = s.level === 'beginner' ? 180 : s.level === 'advanced' ? 330 : 270;
+    var picks = {
+      base:  { fitness:['tempo','ss','end'], endurance:['tempo','ss','end'], race:['ss','tempo','thr'], climb:['tempo','ss','hills'] },
+      build: { fitness:['ss','tempo','vo2'], endurance:['ss','tempo','thr'], race:['thr','vo2','ss'], climb:['hills','thr','ss'] },
+      peak:  { fitness:['vo2','ss','tempo'], endurance:['thr','ss','tempo'], race:['vo2','thr','hills'], climb:['hills','vo2','thr'] }
+    };
+    var days = [];
+    for (w = 0; w < weeks; w++){
+      var ph = phases[w], weekStart = tAddDays(start, w * 7);
+      var factor = ph === 'recovery' ? 0.65 : ph === 'taper' ? 0.55 : ph === 'peak' ? 1.05 : 1 + 0.05 * (w % 4);
+      var W = (s.hours || 5) * 60 * factor;
+      var k = ph === 'recovery' || ph === 'taper' ? 1 : Math.min(kBase, Math.max(0, others.length - (others.length > 2 ? 1 : 0)));
+      // spread hard days: every other available day, never the day before the long ride
+      var hardDays = [], pool = others.filter(function(d){ return d !== longDay - 1 || others.length <= 2; });
+      function nextTo(d){ return hardDays.some(function(h){ return Math.abs(h - d) === 1; }) || Math.abs(d - longDay) === 1; }
+      pool.forEach(function(d){ if (hardDays.length < k && !nextTo(d)) hardDays.push(d); });          // 1st choice: a free day either side
+      pool.forEach(function(d){ if (hardDays.length < k && hardDays.indexOf(d) === -1 && !hardDays.some(function(h){ return Math.abs(h - d) === 1; })) hardDays.push(d); });
+      while (hardDays.length < k){   // last resort: the day touching the fewest hard days
+        var cand = pool.filter(function(d){ return hardDays.indexOf(d) === -1; });
+        if (!cand.length) break;
+        cand.sort(function(a, b){
+          var na = hardDays.filter(function(h){ return Math.abs(h - a) === 1; }).length, nb = hardDays.filter(function(h){ return Math.abs(h - b) === 1; }).length;
+          return na - nb;
+        });
+        hardDays.push(cand[0]);
+      }
+      hardDays.sort(function(a, b){ return a - b; });
+      var list = ((picks[ph] || picks.base)[s.goal] || picks.base.fitness).filter(function(t){ return t !== 'end' || hardDays.length >= 3; });
+      var hardMin = tClamp(tRound5(W * 0.17), 45, s.level === 'beginner' ? 75 : 100);
+      var easy = others.filter(function(d){ return hardDays.indexOf(d) === -1; });
+      var remaining = Math.max(60, W - hardMin * hardDays.length);
+      var easyMin = easy.length ? remaining / (easy.length + 1.6) : 0;           // long ride ≈ 1.6 × an easy ride
+      var longMin = tClamp(tRound5(remaining - easyMin * easy.length), 60, longCap);
+      if (easy.length) easyMin = tClamp(tRound5((remaining - longMin) / easy.length), 30, Math.min(150, Math.max(30, longMin - 15)));
+      for (var d = 0; d < 7; d++){
+        var date = tAddDays(weekStart, d), item = { d:date, type:'rest', min:0 };
+        if (hasEvent && date > s.eventDate){ days.push(item); continue; }
+        if (hasEvent && date === s.eventDate){ item.type = 'event'; item.min = 120; if (s.eventName) item.note = s.eventName; days.push(item); continue; }
+        if (avail.indexOf(d) !== -1){
+          if (ph === 'taper' && hasEvent){
+            var toEvent = Math.round((tParse(s.eventDate) - tParse(date)) / 86400000);
+            if (toEvent === 1){ item.type = 'sprint'; item.min = 45; }
+            else if (d === hardDays[0] && toEvent > 2){ item.type = 'thr'; item.min = 60; }
+            else { item.type = 'rec'; item.min = 40; }
+          } else if (d === longDay){ item.type = 'long'; item.min = longMin; }
+          else if (hardDays.indexOf(d) !== -1){
+            item.type = ph === 'recovery' ? 'tempo' : list[(hardDays.indexOf(d) + w) % list.length];
+            if (item.type === 'end' && ph !== 'recovery'){ item.min = easyMin || hardMin; days.push(item); continue; }
+            item.min = ph === 'recovery' ? 50 : hardMin;
+          } else if (ph === 'recovery' || easyMin < 40){ item.type = 'rec'; item.min = ph === 'recovery' ? 40 : Math.max(30, easyMin); }
+          else { item.type = 'end'; item.min = easyMin; }
+        }
+        days.push(item);
+      }
+    }
+    return { v:1, start:start, days:days, phases:phases, settings:s, source:'app', coachNote:'', generatedAt:new Date().toISOString(), adjustedAt:'' };
+  }
+  function trainWeekTotals(plan, w, log){
+    var planned = 0, done = 0;
+    plan.days.slice(w * 7, w * 7 + 7).forEach(function(x){
+      if (x.type === 'rest') return;
+      planned += x.min;
+      if (log && log[x.d] && log[x.d].status === 'done') done += x.min;
+    });
+    return { planned:planned, done:done };
+  }
+  function trainHours(min){ var h = Math.floor(min / 60), m = min % 60; return h ? h + 'h' + (m ? String(m).padStart(2, '0') : '') : m + ' min'; }
+
+  // ---- days that hold a coach workout (type 'custom' with a copy of the workout) ----
+  var ZONE_ORDER = ['Z1','Z2','Z3','SS','Z4','Z5','Z6'];
+  function topZone(steps){   // the hardest zone held for at least 2 minutes in total
+    var t = {}; (steps || []).forEach(function(s){ t[s.zone] = (t[s.zone] || 0) + s.min; });
+    for (var i = ZONE_ORDER.length - 1; i >= 0; i--) if ((t[ZONE_ORDER[i]] || 0) >= 2) return ZONE_ORDER[i];
+    return 'Z2';
+  }
+  function dayInfo(day){
+    if (day && day.type === 'custom' && day.custom) return { title: day.custom.title, zone: topZone(day.custom.steps), about: day.custom.about || 'A workout from your coach.' };
+    return TRAIN_TYPES[day && day.type] || TRAIN_TYPES.rest;
+  }
+  function daySteps(day){ return day.type === 'custom' && day.custom ? day.custom.steps : trainSteps(day.type, day.min); }
+  function stepsMinutes(steps){ return Math.round((steps || []).reduce(function(t, s){ return t + (Number(s.min) || 0); }, 0)); }
+
+  /*@@TRAIN_CORE_END@@*/
+
+  /* ======================= TRAINING (coach) ======================= */
+  var TR = { users:[], plans:{}, lib:{ workouts:[], templates:[] }, sub:'riders',
+             rider:null, plan:null, log:{}, week:0,      // rider being edited
+             wo:null,                                      // workout being edited
+             tpl:null, tplWeek:0 };                        // template being edited
+
+  function el(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function riderName(u){ return ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || 'Unnamed device'; }
+  function nextMonday(){ var d = tMonday(new Date()); d.setDate(d.getDate() + 7); return tIso(d); }
+  function trMsg(id, text, bad){ var e = $(id); e.textContent = text || ''; e.classList.toggle('bad', !!bad); }
+
+  // ---------- main tabs: Messages | Training ----------
+  function showMainTab(name){
+    Array.prototype.forEach.call(document.querySelectorAll('.maintabs button'), function(b){ b.setAttribute('aria-selected', String(b.dataset.tab === name)); });
+    $('paneMessages').hidden = name !== 'messages'; $('paneTraining').hidden = name !== 'training'; $('paneRiders').hidden = name !== 'riders'; $('paneTeams').hidden = name !== 'teams'; $('paneRaces').hidden = name !== 'races';
+    try{ history.replaceState(null, '', '#' + name); }catch(e){}
+    if (name === 'training') loadTraining();
+    if (name === 'riders') loadTeams().then(loadRiders);
+    if (name === 'races'){ $('rcEditor').hidden = true; $('rcListBox').hidden = false; loadRaces(); }
+    if (name === 'teams'){ $('tmEditor').hidden = true; $('tmListBox').hidden = false; Promise.all([loadTeams(), loadRiders()]).then(renderTeamCards); }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.maintabs button'), function(b){ b.addEventListener('click', function(){ showMainTab(b.dataset.tab); }); });
+
+  function showSub(name){
+    TR.sub = name;
+    Array.prototype.forEach.call(document.querySelectorAll('#trSeg button'), function(b){ b.setAttribute('aria-pressed', String(b.dataset.sub === name)); });
+    $('subRiders').hidden = name !== 'riders'; $('subWorkouts').hidden = name !== 'workouts'; $('subTemplates').hidden = name !== 'templates'; $('subBuild').hidden = name !== 'build';
+    if (name === 'riders'){ $('riderView').hidden = true; $('riderListBox').hidden = false; renderRiders(); }
+    if (name === 'workouts'){ $('woEditor').hidden = true; $('woListBox').hidden = false; renderWorkouts(); }
+    if (name === 'templates'){ $('tplEditor').hidden = true; $('tplListBox').hidden = false; renderTemplates(); }
+    if (name === 'build'){ fillBuildFrom(); if (!TR.build) $('bdEdit').hidden = true; afterPick(); }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#trSeg button'), function(b){ b.addEventListener('click', function(){ showSub(b.dataset.sub); }); });
+
+  function loadTraining(){
+    trMsg('trStatus', 'Loading…');
+    return Promise.all([ api('/api/admin-users'), api('/api/plan?all=1'), api('/api/coach-library') ]).then(function(r){
+      if (r[0].status === 401){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} showLock('Unlock again.'); return; }
+      if (!r[0].ok || !r[1].ok || !r[2].ok){ trMsg('trStatus', ((r[1].data || r[2].data || {}).error) || 'Could not load training data.', true); return; }
+      TR.users = r[0].data.users || [];
+      TR.plans = {}; (r[1].data.riders || []).forEach(function(p){ TR.plans[p.deviceId] = p; });
+      TR.lib = { workouts: r[2].data.workouts || [], templates: r[2].data.templates || [] };
+      trMsg('trStatus', '');
+      showSub(TR.sub);
+    }).catch(function(){ trMsg('trStatus', 'No connection. Try again.', true); });
+  }
+
+  // ---------- shared: workout dropdown (built-in + own workouts) ----------
+  function workoutSelect(day, onChange){
+    var sel = el('select'); sel.setAttribute('aria-label', 'Workout');
+    var g1 = el('optgroup'); g1.label = 'Standard';
+    TRAIN_TYPE_ORDER.forEach(function(k){ var o = el('option', null, TRAIN_TYPES[k].title); o.value = k; g1.appendChild(o); });
+    sel.appendChild(g1);
+    var g2 = el('optgroup'), have = false; g2.label = 'Your workouts';
+    TR.lib.workouts.forEach(function(w){ var o = el('option', null, w.title + ' (' + trainHours(stepsMinutes(w.steps)) + ')'); o.value = 'c:' + w.id; g2.appendChild(o); if (day.wid === w.id) have = true; });
+    if (day.type === 'custom' && day.custom && !have){ var o2 = el('option', null, day.custom.title + ' (saved copy)'); o2.value = 'c:' + (day.wid || 'copy'); g2.appendChild(o2); }
+    if (g2.children.length) sel.appendChild(g2);
+    sel.value = day.type === 'custom' ? 'c:' + (day.wid || 'copy') : (day.type || 'rest');
+    sel.addEventListener('change', function(){
+      var v = sel.value;
+      if (v.indexOf('c:') === 0){
+        var w = TR.lib.workouts.filter(function(x){ return 'c:' + x.id === v; })[0];
+        if (w){ day.type = 'custom'; day.wid = w.id; day.custom = { title: w.title, about: w.about || '', steps: JSON.parse(JSON.stringify(w.steps)) }; day.min = stepsMinutes(w.steps); }
+      } else {
+        delete day.wid; delete day.custom; day.type = v;
+        if (v === 'rest') day.min = 0; else if (!day.min) day.min = { rec:40, end:90, long:150, event:120, sprint:45 }[v] || 75;
+      }
+      onChange();
+    });
+    return sel;
+  }
+  // one editable day row (used for riders and templates)
+  function dayRow(day, label, onChange, logEntry, onMinutes, routeLink){
+    var row = el('div', 'dayrow');
+    row.appendChild(el('span', 'dlab', label));
+    row.appendChild(workoutSelect(day, onChange));
+    var mins = el('input'); mins.type = 'number'; mins.min = 0; mins.max = 480; mins.step = 5; mins.value = day.min || 0;
+    mins.setAttribute('aria-label', 'Minutes'); mins.disabled = day.type === 'rest' || day.type === 'custom';
+    mins.addEventListener('input', function(){ day.min = Math.max(0, Math.min(480, Math.round(+mins.value || 0))); if (onMinutes) onMinutes(); });
+    var minWrap = el('span', 'dmin'); minWrap.appendChild(mins); minWrap.appendChild(el('small', null, 'min'));
+    row.appendChild(minWrap);
+    var note = el('input'); note.type = 'text'; note.maxLength = 200; note.placeholder = 'Note for the rider (optional)'; note.value = day.note || '';
+    note.addEventListener('input', function(){ if (note.value.trim()) day.note = note.value.trim(); else delete day.note; });
+    note.className = 'dnote'; row.appendChild(note);
+    if (routeLink){
+      var fits = routeLink.planMin === day.min, far = Math.abs(routeLink.estMin - day.min) > Math.max(10, day.min * 0.15);
+      var rr = el('div', 'droute' + (fits && !far ? '' : ' off'));
+      rr.textContent = 'Route ' + routeLink.km + ' km · ' + routeLink.gainM + ' m↑ · ≈ ' + trainHours(routeLink.estMin) +
+        (!fits ? ' (made for ' + trainHours(routeLink.planMin) + ', plan changed since)' : far ? (routeLink.estMin > day.min ? ' (longer than planned)' : ' (shorter than planned)') : ' ✓');
+      row.appendChild(rr);
+    }
+    if (logEntry){
+      var r = el('div', 'dref ' + logEntry.status);
+      r.textContent = logEntry.status === 'done' ? '✓ Done' + (logEntry.score ? ' · ' + logEntry.score + '/10 · “' + logEntry.text + '”' : '') : 'Skipped';
+      row.appendChild(r);
+    }
+    return row;
+  }
+
+  // ---------- RIDERS ----------
+  function renderRiders(){
+    var ul = $('riderList'), q = $('riderSearch').value.trim().toLowerCase();
+    ul.innerHTML = '';
+    var ids = {}; TR.users.forEach(function(u){ ids[u.deviceId] = u; });
+    Object.keys(TR.plans).forEach(function(id){ if (!ids[id]) ids[id] = { deviceId:id, firstName:TR.plans[id].firstName, lastName:TR.plans[id].lastName, team:TR.plans[id].team }; });
+    var list = Object.keys(ids).map(function(id){ return ids[id]; })
+      .filter(function(u){ return u.firstName || u.lastName || TR.plans[u.deviceId]; })
+      .filter(function(u){ return !q || (riderName(u) + ' ' + (u.team || '')).toLowerCase().indexOf(q) !== -1; })
+      .sort(function(a, b){ return riderName(a).localeCompare(riderName(b)); });
+    var tbox = $('riderTable'); tbox.innerHTML = '';
+    tbox.hidden = !isWide() || !list.length; ul.hidden = isWide() && !!list.length;
+    if (!list.length){ ul.appendChild(el('li', 'empty-note', TR.users.length ? 'Nobody matches that search.' : 'No riders yet.')); return; }
+    if (isWide()){ tbox.appendChild(riderTable(list)); return; }
+    list.forEach(function(u){
+      var p = TR.plans[u.deviceId];
+      var li = el('li', 'rrow'); li.tabIndex = 0; li.setAttribute('role', 'button');
+      var main = el('div', 'rmain');
+      main.appendChild(el('b', null, riderName(u)));
+      var sub = el('span', 'rsub');
+      sub.textContent = (u.team || 'No team') + (p && p.canEdit ? ' · makes own plan' : '') + ' · ' + (!p ? 'no plan yet' : p.ended ? 'plan ended ' + p.endDate : (p.templateName ? p.templateName : TRAIN_GOALS[p.goal] || 'plan') + (p.source === 'coach' ? ' (adjusted)' : ''));
+      main.appendChild(sub);
+      if (p && p.lastReflection) main.appendChild(el('span', 'rref', p.lastReflection.score + '/10 · “' + p.lastReflection.text + '”'));
+      li.appendChild(main);
+      var side = el('div', 'rside');
+      if (p){ side.appendChild(el('b', null, p.done + '/' + p.due)); side.appendChild(el('small', null, p.avgScore != null ? 'score ' + p.avgScore : 'done')); }
+      li.appendChild(side);
+      li.addEventListener('click', function(){ openRider(u); });
+      li.addEventListener('keydown', function(e){ if (e.key === 'Enter') openRider(u); });
+      ul.appendChild(li);
+    });
+  }
+  $('riderSearch').addEventListener('input', renderRiders);
+
+  function openRider(u){
+    TR.rider = u; TR.plan = null; TR.log = {};
+    $('riderListBox').hidden = true; $('riderView').hidden = false;
+    $('rvName').textContent = riderName(u);
+    $('rvInfo').textContent = 'Loading…';
+    $('rvPlanBox').hidden = true; trMsg('rvResult', '');
+    // template picker
+    var sel = $('rvTemplate'); sel.innerHTML = '';
+    if (!TR.lib.templates.length){ var o = el('option', null, 'No templates yet: make one under Plan templates'); o.value = ''; sel.appendChild(o); }
+    TR.lib.templates.forEach(function(t){ var o = el('option', null, t.name + ' (' + t.weeks.length + ' wk)'); o.value = t.id; sel.appendChild(o); });
+    $('rvAssign').disabled = !TR.lib.templates.length;
+    $('rvStart').value = nextMonday();
+    api('/api/plan?deviceId=' + encodeURIComponent(u.deviceId)).then(function(res){
+      if (!res.ok){ $('rvInfo').textContent = (res.data && res.data.error) || 'Could not load the plan.'; return; }
+      TR.log = res.data.log || {}; TR.routes = res.data.routes || {};
+      setPermUI(!!res.data.canEdit);
+      $('rvCopy').hidden = !res.data.plan;
+      if (!res.data.plan){ $('rvInfo').textContent = (u.team || 'No team') + ' · no plan yet. Give this rider a plan template below, or ask them to make one under Train.'; return; }
+      TR.plan = JSON.parse(JSON.stringify(res.data.plan));
+      var s = TR.plan.settings || {}, last = TR.plan.days.length ? TR.plan.days[TR.plan.days.length - 1].d : '';
+      $('rvInfo').textContent = (u.team || 'No team') + ' · ' + (TR.plan.templateName ? 'template “' + TR.plan.templateName + '”' : (TRAIN_GOALS[s.goal] || '') + (s.hours ? ', ' + s.hours + ' h/week' : '') + (s.level ? ', ' + s.level : '')) +
+        (s.ftp ? ' · FTP ' + s.ftp + ' W' : '') + (s.eventDate ? ' · ' + (s.eventName || 'event') + ' ' + s.eventDate : '') + ' · ends ' + last +
+        (TR.plan.source === 'coach' ? ' · adjusted by you' : ' · app suggestion');
+      $('rvNote').value = TR.plan.coachNote || '';
+      var n = Math.ceil(TR.plan.days.length / 7), today = tIso(new Date());
+      TR.week = Math.max(0, Math.min(n - 1, Math.floor((tParse(today) - tParse(TR.plan.start)) / (7 * 86400000))));
+      $('rvPlanBox').hidden = false;
+      renderRiderWeek();
+    }).catch(function(){ $('rvInfo').textContent = 'No connection.'; });
+  }
+  function riderWeekLabel(){
+    var p = TR.plan, n = Math.ceil(p.days.length / 7), w = TR.week;
+    var t = trainWeekTotals(p, w, TR.log), wk = p.days.slice(w * 7, w * 7 + 7);
+    $('rvWeekLabel').textContent = 'Week ' + (w + 1) + ' of ' + n + ' · ' + (TRAIN_PHASES[p.phases[w]] || p.phases[w] || '') + ' · ' + weekTotalsText(wk) + (t.done ? ' (' + trainHours(t.done) + ' done)' : '');
+  }
+  function planTotalsText(days, weeks){
+    var m = 0, k = 0; days.forEach(function(d){ if (d.type !== 'rest'){ m += d.min || 0; k += estKm(d); } });
+    return 'Whole plan: ' + weeks + ' week' + (weeks === 1 ? '' : 's') + ' · ' + trainHours(m) + ' · ≈ ' + k + ' km · about ' + trainHours(Math.round(m / Math.max(1, weeks))) + ' a week';
+  }
+  function renderRiderWeek(){
+    var p = TR.plan, n = Math.ceil(p.days.length / 7), w = TR.week;
+    function riderTot(){ $('rvTotals').textContent = planTotalsText(p.days, n); }
+    if (isWide()){
+      var weeks = []; for (var i = 0; i < n; i++) weeks.push({ phase: p.phases[i] || 'base', days: p.days.slice(i * 7, i * 7 + 7) });
+      planGrid($('rvWeek'), weeks, { dated:true, log: TR.log, routes: TR.routes, redraw: renderRiderWeek,
+        onPhase: function(wi, v){ p.phases[wi] = v; }, onChange: riderTot });
+      riderTot(); return;
+    }
+    riderTot();
+    riderWeekLabel();
+    $('rvPrev').disabled = w === 0; $('rvNext').disabled = w >= n - 1;
+    var box = $('rvWeek'); box.innerHTML = '';
+    p.days.slice(w * 7, w * 7 + 7).forEach(function(day){
+      var dt = tParse(day.d);
+      box.appendChild(dayRow(day, TRAIN_DAYS[(dt.getDay() + 6) % 7] + ' ' + dt.getDate() + '/' + (dt.getMonth() + 1), renderRiderWeek, TR.log[day.d], riderWeekLabel, (TR.routes || {})[day.d]));
+    });
+  }
+  $('rvPrev').addEventListener('click', function(){ TR.week--; renderRiderWeek(); });
+  $('rvNext').addEventListener('click', function(){ TR.week++; renderRiderWeek(); });
+  $('rvBack').addEventListener('click', function(){ showSub('riders'); });
+  function savePlanFor(deviceId, plan, replace, resultId){
+    trMsg(resultId, 'Saving…');
+    return api('/api/plan', { method:'PUT', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ deviceId: deviceId, plan: plan, notify: $('rvNotify').checked, replace: !!replace }) })
+      .then(function(res){
+        if (!res.ok){ trMsg(resultId, (res.data && res.data.error) || 'Could not save.', true); return false; }
+        trMsg(resultId, 'Saved.' + ($('rvNotify').checked ? (res.data.notified ? ' The rider got a notification and their app updates.' : ' No notification: the rider has not turned notifications on (their app updates when they open Train).') : ''));
+        return res.data.plan;
+      }).catch(function(){ trMsg(resultId, 'No connection. Not saved.', true); return false; });
+  }
+  $('rvSave').addEventListener('click', function(){
+    if (!TR.plan) return;
+    TR.plan.coachNote = $('rvNote').value.trim().slice(0, 600);
+    var btn = this; btn.disabled = true;
+    savePlanFor(TR.rider.deviceId, TR.plan, false, 'rvResult').then(function(p){ btn.disabled = false; if (p){ TR.plan = p; loadTrainingQuiet(); } });
+  });
+  // a template becomes a real plan for one rider, starting on a Monday
+  function planFromTemplate(t, startIso, existing, answers){
+    var start = tIso(tMonday(tParse(startIso))), days = [], phases = [];
+    t.weeks.forEach(function(w, wi){
+      phases.push(w.phase || 'base');
+      w.days.forEach(function(d, di){
+        var day = { d: tAddDays(start, wi * 7 + di), type: d.type, min: d.min || 0 };
+        if (d.note) day.note = d.note;
+        if (d.type === 'custom'){ day.wid = d.wid; day.custom = JSON.parse(JSON.stringify(d.custom)); day.min = stepsMinutes(d.custom.steps); }
+        days.push(day);
+      });
+    });
+    var s = (existing && existing.settings) ? JSON.parse(JSON.stringify(existing.settings)) : {};
+    var total = days.reduce(function(a, x){ return a + (x.type === 'rest' ? 0 : x.min); }, 0);
+    s.hours = Math.round(total / 60 / t.weeks.length); s.eventDate = ''; s.eventName = ''; s.recoveryFirst = false;
+    if (answers){ ['goal','level','days','hours','eventDate','eventName'].forEach(function(k){ if (answers[k] != null) s[k] = answers[k]; }); if (answers.ftp) s.ftp = answers.ftp; }
+    return { v:1, start: start, days: days, phases: phases, settings: s, templateName: t.name, coachNote: t.about || '', source:'coach', generatedAt: new Date().toISOString() };
+  }
+  $('rvAssign').addEventListener('click', async function(){
+    var t = TR.lib.templates.filter(function(x){ return x.id === $('rvTemplate').value; })[0];
+    if (!t) return;
+    var start = $('rvStart').value || nextMonday();
+    if (TR.plan && !(await uiConfirm('Replace ' + riderName(TR.rider) + '’s current plan with “' + t.name + '” from ' + start + '? The current plan is kept in their history.'))) return;
+    var btn = this; btn.disabled = true;
+    savePlanFor(TR.rider.deviceId, planFromTemplate(t, start, TR.plan), true, 'rvAssignResult').then(function(p){
+      btn.disabled = false;
+      if (p){ loadTrainingQuiet().then(function(){ openRider(TR.rider); trMsg('rvResult', '“' + t.name + '” is now ' + riderName(TR.rider) + '’s plan.'); }); }
+    });
+  });
+  $('rvToTemplate').addEventListener('click', async function(){
+    if (!TR.plan) return;
+    var name = (await uiPrompt('Template name', (TR.plan.templateName || TRAIN_GOALS[(TR.plan.settings || {}).goal] || 'Plan') + ' (' + Math.ceil(TR.plan.days.length / 7) + ' weeks)'));
+    if (!name) return;
+    var weeks = [];
+    for (var w = 0; w * 7 < TR.plan.days.length; w++){
+      weeks.push({ phase: TR.plan.phases[w] || 'base', days: TR.plan.days.slice(w * 7, w * 7 + 7).map(function(d){
+        var x = { type: d.type, min: d.min }; if (d.note) x.note = d.note; if (d.type === 'custom'){ x.wid = d.wid; x.custom = d.custom; } return x; }) });
+    }
+    saveLibrary('template', { name: name, about: $('rvNote').value.trim(), weeks: weeks }, 'rvResult').then(function(item){ if (item) trMsg('rvResult', 'Saved as template “' + item.name + '”. Find it under Plan templates.'); });
+  });
+  function loadTrainingQuiet(){
+    return Promise.all([ api('/api/plan?all=1'), api('/api/coach-library') ]).then(function(r){
+      if (r[0].ok){ TR.plans = {}; (r[0].data.riders || []).forEach(function(p){ TR.plans[p.deviceId] = p; }); }
+      if (r[1].ok) TR.lib = { workouts: r[1].data.workouts || [], templates: r[1].data.templates || [] };
+    });
+  }
+  function saveLibrary(kind, item, resultId){
+    trMsg(resultId, 'Saving…');
+    return api('/api/coach-library', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ kind: kind, item: item }) })
+      .then(function(res){
+        if (!res.ok){ trMsg(resultId, (res.data && res.data.error) || 'Could not save.', true); return null; }
+        return loadTrainingQuiet().then(function(){ trMsg(resultId, 'Saved.'); return res.data.item; });
+      }).catch(function(){ trMsg(resultId, 'No connection. Not saved.', true); return null; });
+  }
+  function deleteLibrary(kind, id, resultId){
+    return api('/api/coach-library', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ kind: kind, id: id }) })
+      .then(function(res){ if (!res.ok){ trMsg(resultId, (res.data && res.data.error) || 'Could not delete.', true); return false; } return loadTrainingQuiet().then(function(){ return true; }); });
+  }
+
+
+  /* ---------- BUILD PLAN: make a plan once, give it to one or many riders ---------- */
+  var TRAIN_PACE_A = { rec:24, end:27, long:27, tempo:28, ss:28, thr:28, vo2:26, hills:22, sprint:26, custom:27, event:28 };
+  function estKm(day){ return day.type === 'rest' ? 0 : Math.round((day.min || 0) / 60 * (TRAIN_PACE_A[day.type] || 27)); }
+  function weekTotalsText(days){
+    var m = 0, k = 0; days.forEach(function(d){ if (d.type !== 'rest'){ m += d.min || 0; k += estKm(d); } });
+    return trainHours(m) + ' · ≈ ' + k + ' km';
+  }
+  function planToWeeks(plan){
+    var weeks = [];
+    for (var w = 0; w * 7 < plan.days.length; w++){
+      weeks.push({ phase: (plan.phases || [])[w] || 'base', days: plan.days.slice(w * 7, w * 7 + 7).map(function(d){
+        var x = { type: d.type, min: d.min || 0 }; if (d.note) x.note = d.note; if (d.type === 'custom'){ x.wid = d.wid; x.custom = JSON.parse(JSON.stringify(d.custom)); } return x; }) });
+    }
+    return weeks;
+  }
+  TR.build = null;
+  TR.buildPick = TR.buildPick || {};
+  var BD = { days:[1,3,5,6], hours:6, level:'intermediate', goal:'fitness', how:'suggest', touched:false, prefillFor:'' };
+  function setPressed(groupId, test){ Array.prototype.forEach.call(document.querySelectorAll('#' + groupId + ' button'), function(x){ x.setAttribute('aria-pressed', String(test(x.dataset.v))); }); }
+  function paintAnswers(){
+    setPressed('bdDays', function(v){ return BD.days.indexOf(+v) !== -1; });
+    setPressed('bdLevel', function(v){ return v === BD.level; });
+    setPressed('bdGoal', function(v){ return v === BD.goal; });
+    setPressed('bdHow', function(v){ return v === BD.how; });
+    $('bdHours').value = BD.hours; $('bdHoursVal').textContent = BD.hours + ' h';
+    $('bdTplSel').hidden = BD.how !== 'template'; $('bdCopySel').hidden = BD.how !== 'copy';
+    $('bdHowHint').textContent = { suggest:'The app builds the weeks from these answers (base, build, peak and an easy week every 4th week; tapers before an event).',
+      template:'Uses one of your templates; the answers are kept with the plan.', copy:'Starts from another rider’s plan.',
+      basic:'An endurance ride on every riding day, hours spread evenly. Then you fill in the details.' }[BD.how];
+  }
+  function bindGroup(id, key, multi){
+    Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' button'), function(btn){
+      btn.addEventListener('click', function(){
+        if (multi){ var v = +btn.dataset.v, i = BD.days.indexOf(v); if (i === -1) BD.days.push(v); else BD.days.splice(i, 1); BD.days.sort(); }
+        else BD[key] = btn.dataset.v;
+        if (key !== 'how') BD.touched = true;
+        paintAnswers();
+      });
+    });
+  }
+  bindGroup('bdDays', 'days', true); bindGroup('bdLevel', 'level'); bindGroup('bdGoal', 'goal'); bindGroup('bdHow', 'how');
+  $('bdHours').addEventListener('input', function(){ BD.hours = +this.value; BD.touched = true; $('bdHoursVal').textContent = BD.hours + ' h'; });
+  ['bdEventDate','bdEventName','bdWeeks'].forEach(function(id){ $(id).addEventListener('input', function(){ BD.touched = true; }); });
+  function riderInfo(id){ return RD.list.filter(function(r){ return r.id === id; })[0] || TR.users.filter(function(u){ return u.deviceId === id; })[0] || { deviceId:id }; }
+  function pickedIds(){ return Object.keys(TR.buildPick); }
+  function fillBuildFrom(){
+    $('bdStartDate').value = $('bdStartDate').value || nextMonday();
+    var ts = $('bdTplSel'); ts.innerHTML = '';
+    if (!TR.lib.templates.length){ var o0 = el('option', null, 'No templates yet'); o0.value = ''; ts.appendChild(o0); }
+    TR.lib.templates.forEach(function(t){ var o = el('option', null, t.name + ' (' + t.weeks.length + ' wk)'); o.value = t.id; ts.appendChild(o); });
+    var cs = $('bdCopySel'); cs.innerHTML = '';
+    var withPlan = Object.keys(TR.plans).map(function(id){ return TR.plans[id]; });
+    if (!withPlan.length){ var o1 = el('option', null, 'No rider has a plan yet'); o1.value = ''; cs.appendChild(o1); }
+    withPlan.forEach(function(pl){ var o = el('option', null, riderName(pl) + (pl.team ? ' · ' + pl.team : '')); o.value = pl.deviceId; cs.appendChild(o); });
+    paintAnswers(); renderBuildRiders();
+    if (!RD.list.length) loadRiders().then(function(){ renderBuildRiders(); });
+  }
+  function openBuilder(opts){
+    opts = opts || {};
+    TR.build = null; TR.buildPick = {}; BD.touched = false; BD.prefillFor = '';
+    (opts.riders || []).forEach(function(id){ TR.buildPick[id] = true; });
+    if (opts.copyFrom){ BD.how = 'copy'; }
+    showSub('build');
+    $('bdEdit').hidden = true;
+    fillBuildFrom();
+    if (opts.copyFrom) $('bdCopySel').value = opts.copyFrom;
+    afterPick();
+    window.scrollTo(0, 0);
+  }
+  // one rider picked: fill in their answers from their current plan + FTP from the profile
+  function afterPick(){
+    var ids = pickedIds(), note = $('bdPrefill');
+    $('bdPicked').textContent = !ids.length ? '' : ids.length === 1 ? 'Plan for ' + riderName(riderInfo(ids[0])) : 'One plan for ' + ids.length + ' riders';
+    if (ids.length !== 1){ note.textContent = ids.length > 1 ? 'One plan for ' + ids.length + ' riders. Power targets use each rider’s own FTP from their profile.' : 'The same questions a rider answers for their own plan.'; return; }
+    var id = ids[0], r = riderInfo(id);
+    if (BD.prefillFor === id) return;
+    BD.prefillFor = id;
+    var ftpTxt = r.ftp ? ' FTP ' + r.ftp + ' W (from the profile).' : ' No FTP in the profile: targets show as effort.';
+    note.textContent = 'Loading ' + riderName(r) + '’s answers…';
+    api('/api/plan?deviceId=' + encodeURIComponent(id)).then(function(res){
+      var st = res.ok && res.data.plan && res.data.plan.settings;
+      if (st && !BD.touched && Array.isArray(st.days) && st.days.length){
+        BD.days = st.days.slice(); if (st.hours) BD.hours = Math.max(2, Math.min(20, Math.round(st.hours)));
+        if (st.level) BD.level = st.level; if (st.goal) BD.goal = st.goal;
+        if (st.eventDate && st.eventDate >= tIso(new Date())){ $('bdEventDate').value = st.eventDate; $('bdEventName').value = st.eventName || ''; }
+        paintAnswers();
+        note.textContent = 'Filled in from ' + r.firstName + '’s current plan: change whatever you like.' + ftpTxt;
+      } else note.textContent = (BD.touched ? 'Your answers are kept.' : r.firstName + ' has no plan yet: fill in the answers.') + ftpTxt;
+    }).catch(function(){ note.textContent = ftpTxt.trim(); });
+  }
+  function answers(){
+    return { goal: BD.goal, hours: BD.hours, days: BD.days.slice(), level: BD.level, eventDate: $('bdEventDate').value || '',
+             eventName: $('bdEventName').value.trim().slice(0, 60), weeks: +$('bdWeeks').value || 8 };
+  }
+  function answersText(a, start){
+    var dn = a.days.map(function(d){ return TRAIN_DAYS[d]; }).join(' ');
+    return dn + ' · about ' + a.hours + ' h a week · ' + a.level.charAt(0).toUpperCase() + a.level.slice(1) + ' · ' + (TRAIN_GOALS[a.goal] || '') +
+      (a.eventDate ? ' · ' + (a.eventName || 'event') + ' on ' + tParse(a.eventDate).toLocaleDateString([], { day:'numeric', month:'short' }) : '') +
+      ' · from the week of ' + tParse(start).toLocaleDateString([], { day:'numeric', month:'short' });
+  }
+  function startBuild(){
+    var a = answers(), start = tIso(tMonday(tParse($('bdStartDate').value || nextMonday())));
+    if (a.days.length < 1){ trMsg('bdStartMsg', 'Pick at least one riding day.', true); return; }
+    if (a.eventDate && a.eventDate < start){ trMsg('bdStartMsg', 'The event is before the start week.', true); return; }
+    function go(weeks, name, about){
+      TR.build = { weeks: weeks, week: 0, answers: a, start: start };
+      trMsg('bdStartMsg', ''); beginEdit(weeks, name, about);
+    }
+    if (BD.how === 'suggest'){
+      if (a.days.length < 2){ trMsg('bdStartMsg', 'A suggestion needs at least 2 riding days.', true); return; }
+      var plan = generateTrainPlan(a, tParse(start));
+      go(planToWeeks(plan), (TRAIN_GOALS[a.goal] || 'Plan') + (a.eventName ? ' → ' + a.eventName : ''), '');
+    } else if (BD.how === 'template'){
+      var t = TR.lib.templates.filter(function(x){ return x.id === $('bdTplSel').value; })[0];
+      if (!t){ trMsg('bdStartMsg', 'Make a template first (Plan templates), or pick another way.', true); return; }
+      go(JSON.parse(JSON.stringify(t.weeks)), t.name, t.about || '');
+    } else if (BD.how === 'copy'){
+      var id = $('bdCopySel').value;
+      if (!id){ trMsg('bdStartMsg', 'No rider plan to copy yet.', true); return; }
+      trMsg('bdStartMsg', 'Loading…');
+      api('/api/plan?deviceId=' + encodeURIComponent(id)).then(function(res){
+        if (!res.ok || !res.data.plan){ trMsg('bdStartMsg', 'Could not load that plan.', true); return; }
+        go(planToWeeks(res.data.plan), 'Copy of ' + riderName(TR.plans[id] || {}) + '’s plan', res.data.plan.coachNote || '');
+      });
+    } else {
+      var n = a.eventDate ? Math.max(1, Math.min(16, Math.floor((tParse(a.eventDate) - tParse(start)) / (7 * 86400000)) + 1)) : a.weeks;
+      var per = Math.max(30, Math.round(a.hours * 60 / Math.max(1, a.days.length) / 5) * 5), weeks = [];
+      for (var w = 0; w < n; w++) weeks.push({ phase:'base', days:[0,1,2,3,4,5,6].map(function(d){ return a.days.indexOf(d) !== -1 ? { type:'end', min: per } : { type:'rest', min:0 }; }) });
+      go(weeks, 'Basic plan', '');
+    }
+  }
+  $('bdStart').addEventListener('click', function(){
+    if (TR.build && !$('bdEdit').hidden){
+      uiConfirm('Replace the weeks you are working on with a new plan from these answers?', { ok:'Make new plan', cancel:'Keep my weeks' }).then(function(ok){ if (ok) startBuild(); });
+    } else startBuild();
+  });
+  function beginEdit(weeks, name, about){
+    $('bdName').value = name || ''; $('bdNote').value = about || '';
+    $('bdEdit').hidden = false; trMsg('bdResult', ''); trMsg('bdTplResult', '');
+    $('bdSummary').textContent = answersText(TR.build.answers, TR.build.start);
+    renderBuildWeek(); renderBuildRiders();
+    $('bdEdit').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  function refreshBuildTotals(){
+    var b = TR.build, wk = b.weeks[b.week], all = [];
+    b.weeks.forEach(function(w){ all = all.concat(w.days); });
+    $('bdWeekLabel').textContent = 'Week ' + (b.week + 1) + ' of ' + b.weeks.length + ' · ' + weekTotalsText(wk.days);
+    var m = 0; all.forEach(function(d){ if (d.type !== 'rest') m += d.min || 0; });
+    $('bdTotals').textContent = 'Whole plan: ' + b.weeks.length + ' week' + (b.weeks.length === 1 ? '' : 's') + ', ' + trainHours(m) + ', about ' + trainHours(Math.round(m / b.weeks.length)) + ' a week.';
+  }
+  function renderBuildWeek(){
+    var b = TR.build;
+    if (b.week >= b.weeks.length) b.week = b.weeks.length - 1;
+    if (isWide()){
+      var allDays = function(){ var a = []; b.weeks.forEach(function(w){ a = a.concat(w.days); }); return a; };
+      planGrid($('bdWeek'), b.weeks, { canResize:true, ridingDays: b.answers ? b.answers.days : null, redraw: renderBuildWeek, onChange: function(){ $('bdTotals').textContent = planTotalsText(allDays(), b.weeks.length); } });
+      $('bdTotals').textContent = planTotalsText(allDays(), b.weeks.length); return;
+    }
+    var wk = b.weeks[b.week];
+    $('bdPrev').disabled = b.week === 0; $('bdNext').disabled = b.week >= b.weeks.length - 1;
+    $('bdPhase').value = wk.phase || 'base';
+    $('bdRemoveWeek').disabled = b.weeks.length <= 1;
+    var box = $('bdWeek'); box.innerHTML = '';
+    wk.days.forEach(function(day, i){ box.appendChild(dayRow(day, TRAIN_DAYS[i] + (b.answers && b.answers.days.indexOf(i) !== -1 ? ' ●' : ''), renderBuildWeek, null, refreshBuildTotals)); });
+    refreshBuildTotals();
+  }
+  $('bdPhase').addEventListener('change', function(){ TR.build.weeks[TR.build.week].phase = this.value; });
+  $('bdPrev').addEventListener('click', function(){ TR.build.week--; renderBuildWeek(); });
+  $('bdNext').addEventListener('click', function(){ TR.build.week++; renderBuildWeek(); });
+  $('bdCopyNext').addEventListener('click', async function(){
+    var b = TR.build, copy = JSON.parse(JSON.stringify(b.weeks[b.week]));
+    if (b.week === b.weeks.length - 1){ if (b.weeks.length >= 16){ trMsg('bdResult', 'A plan can have up to 16 weeks.', true); return; } b.weeks.push(copy); }
+    else if (!(await uiConfirm('Overwrite week ' + (b.week + 2) + ' with a copy of this week?'))) return;
+    else b.weeks[b.week + 1] = copy;
+    b.week++; renderBuildWeek();
+  });
+  $('bdClearWeek').addEventListener('click', async function(){ if (!(await uiConfirm('Make every day of this week a rest day?'))) return; TR.build.weeks[TR.build.week] = Object.assign(blankWeek(), { phase: TR.build.weeks[TR.build.week].phase }); renderBuildWeek(); });
+  $('bdAddWeek').addEventListener('click', function(){ var b = TR.build; if (b.weeks.length >= 16){ trMsg('bdResult', 'A plan can have up to 16 weeks.', true); return; } b.weeks.splice(b.week + 1, 0, blankWeek()); b.week++; renderBuildWeek(); });
+  $('bdRemoveWeek').addEventListener('click', async function(){ var b = TR.build; if (b.weeks.length <= 1 || !(await uiConfirm('Remove week ' + (b.week + 1) + '?'))) return; b.weeks.splice(b.week, 1); b.week = Math.max(0, b.week - 1); renderBuildWeek(); });
+
+  // riders to give the plan to
+  function buildRiderList(){ return TR.users.filter(function(u){ return u.firstName || u.lastName; }).sort(function(a, b){ return riderName(a).localeCompare(riderName(b)); }); }
+  function renderBuildRiders(){
+    var q = $('bdSearch').value.trim().toLowerCase(), box = $('bdRiders'), chips = $('bdTeams');
+    box.innerHTML = ''; chips.innerHTML = '';
+    var all = buildRiderList();
+    function chip(t, fn){ var c = el('button', 'chip', t); c.type = 'button'; c.addEventListener('click', function(){ fn(); renderBuildRiders(); afterPick(); }); chips.appendChild(c); }
+    chip('Everyone', function(){ all.forEach(function(u){ TR.buildPick[u.deviceId] = true; }); });
+    chip('Nobody', function(){ TR.buildPick = {}; });
+    var teams = []; all.forEach(function(u){ if (u.team && teams.indexOf(u.team) === -1) teams.push(u.team); });
+    teams.sort().forEach(function(t){ chip('Team ' + t, function(){ TR.buildPick = {}; all.forEach(function(u){ if (u.team === t) TR.buildPick[u.deviceId] = true; }); }); });
+    all.filter(function(u){ return !q || (riderName(u) + ' ' + (u.team || '')).toLowerCase().indexOf(q) !== -1; }).forEach(function(u){
+      var l = el('label'); var c = el('input'); c.type = 'checkbox'; c.checked = !!TR.buildPick[u.deviceId];
+      c.addEventListener('change', function(){ if (c.checked) TR.buildPick[u.deviceId] = true; else delete TR.buildPick[u.deviceId]; buildCount(); afterPick(); });
+      var nm = el('span', 'nm', riderName(u)), p = TR.plans[u.deviceId];
+      nm.appendChild(el('span', 'sub', (u.team || 'No team') + (p ? (p.ended ? ' · plan ended' : ' · has a plan (it will be replaced, kept in history)') : ' · no plan yet')));
+      l.appendChild(c); l.appendChild(nm); box.appendChild(l);
+    });
+    if (!all.length) box.appendChild(el('div', 'empty-note', 'No riders yet.'));
+    buildCount();
+  }
+  function buildCount(){
+    var ids = pickedIds(), n = ids.length;
+    $('bdGive').textContent = n === 1 ? 'Give this plan to ' + riderName(riderInfo(ids[0])) : n ? 'Give this plan to ' + n + ' riders' : 'Pick a rider in step 1';
+    $('bdGive').disabled = !n || !TR.build;
+    if (TR.build){
+      var has = ids.filter(function(id){ return TR.plans[id] && !TR.plans[id].ended; }).map(function(id){ return riderName(riderInfo(id)); });
+      $('bdGiveSummary').textContent = (n ? 'For ' + ids.map(function(id){ return riderName(riderInfo(id)); }).join(', ') : 'No rider picked yet (step 1)') + ' · ' + TR.build.weeks.length + ' weeks from ' +
+        tParse(TR.build.start).toLocaleDateString([], { day:'numeric', month:'long' }) + '.' + (has.length ? ' Replaces the current plan of ' + has.join(', ') + ' (kept in their history).' : '');
+    }
+  }
+  $('bdSearch').addEventListener('input', renderBuildRiders);
+  $('bdGive').addEventListener('click', async function(){
+    var ids = Object.keys(TR.buildPick), start = TR.build.start, btn = this;
+    var hasPlan = ids.filter(function(id){ return TR.plans[id] && !TR.plans[id].ended; }).length;
+    if (!(await uiConfirm('Give this ' + TR.build.weeks.length + '-week plan to ' + ids.length + ' rider' + (ids.length === 1 ? '' : 's') + ', starting ' + start + '?' +
+      (hasPlan ? '\n' + hasPlan + ' of them already have a plan; it is replaced and kept in their history.' : '')))) return;
+    var tpl = { name: $('bdName').value.trim() || 'Coach plan', about: $('bdNote').value.trim(), weeks: TR.build.weeks };
+    btn.disabled = true; var ok = 0, failed = [], i = 0;
+    (function next(){
+      if (i >= ids.length){
+        btn.disabled = false; loadTrainingQuiet().then(renderBuildRiders);
+        trMsg('bdResult', 'Given to ' + ok + ' of ' + ids.length + ' rider' + (ids.length === 1 ? '' : 's') + '.' + (failed.length ? ' Failed: ' + failed.join(', ') + '.' : '') +
+          ($('bdNotify').checked ? ' Riders with notifications on got a message.' : ''), !!failed.length);
+        return;
+      }
+      var id = ids[i++], u = TR.users.filter(function(x){ return x.deviceId === id; })[0] || { deviceId:id };
+      trMsg('bdResult', 'Saving ' + i + ' of ' + ids.length + '…');
+      api('/api/plan?deviceId=' + encodeURIComponent(id)).then(function(res){
+        var ans = Object.assign({}, TR.build.answers, { ftp: riderInfo(id).ftp || 0 });
+        var plan = planFromTemplate(tpl, start, res.ok ? res.data.plan : null, ans);
+        return api('/api/plan', { method:'PUT', headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ deviceId: id, plan: plan, notify: $('bdNotify').checked, replace: true }) });
+      }).then(function(r){ if (r && r.ok) ok++; else failed.push(riderName(u)); next(); })
+        .catch(function(){ failed.push(riderName(u)); next(); });
+    })();
+  });
+  $('bdSaveTpl').addEventListener('click', function(){
+    var name = $('bdName').value.trim();
+    if (!name){ trMsg('bdTplResult', 'Give the plan a name first (top of step 3).', true); return; }
+    saveLibrary('template', { name: name, about: $('bdNote').value.trim(), weeks: TR.build.weeks }, 'bdTplResult')
+      .then(function(item){ if (item) trMsg('bdTplResult', 'Saved as template “' + item.name + '”.'); });
+  });
+
+
+  /* ======================= WIDE SCREENS (tablet + PC) =======================
+     From 760 px wide (iPad portrait, Android tablets, laptops, desktops) the
+     admin uses the whole screen: plans become a table (weeks × Mon–Sun with
+     totals), riders a table, and Messages two columns. Phones keep the
+     one-column, week-by-week layout. Switches live on rotate / resize. */
+  var WIDE_MQ = window.matchMedia ? window.matchMedia('(min-width: 760px)') : { matches:false };
+  function isWide(){ return !!WIDE_MQ.matches; }
+  function applyWide(){
+    document.body.classList.toggle('wide', isWide());
+    // redraw whatever is on screen in the right format
+    if ($('paneRiders') && !$('paneRiders').hidden && !$('rdListBox').hidden) renderRiderSetup();
+    if ($('paneTraining') && !$('paneTraining').hidden){
+      if (TR.sub === 'riders'){ if (!$('riderView').hidden && TR.plan) renderRiderWeek(); else if ($('riderView').hidden) renderRiders(); }
+      if (TR.sub === 'build' && TR.build && !$('bdEdit').hidden) renderBuildWeek();
+      if (TR.sub === 'templates' && TR.tpl && !$('tplEditor').hidden) renderTplWeek();
+    }
+  }
+  if (WIDE_MQ.addEventListener) WIDE_MQ.addEventListener('change', applyWide); else if (WIDE_MQ.addListener) WIDE_MQ.addListener(applyWide);
+  document.body.classList.toggle('wide', isWide());
+
+  // ---------- the plan table ----------
+  // weeks: [{ phase, days:[7 day objects] }]  (day objects are edited in place)
+  // o: { dated, log, routes, canResize, redraw(), onPhase(w, v), onChange() }
+  function planGrid(box, weeks, o){
+    box.innerHTML = '';
+    var today = tIso(new Date());
+    var wrap = el('div', 'pgrid-wrap'), t = el('table', 'pgrid'), thead = el('thead'), hr = el('tr');
+    hr.appendChild(el('th', 'wkh', 'Week'));
+    TRAIN_DAYS.forEach(function(d, i){ var th0 = el('th', o.ridingDays && o.ridingDays.indexOf(i) !== -1 ? 'rideday' : null, d); if (th0.className) th0.title = 'Riding day'; hr.appendChild(th0); });
+    hr.appendChild(el('th', 'toth', 'Total'));
+    thead.appendChild(hr); t.appendChild(thead);
+    var tb = el('tbody');
+    weeks.forEach(function(wk, wi){
+      var tr = el('tr');
+      if (o.dated && wk.days.some(function(d){ return d.d === today; })) tr.className = 'thisweek';
+      // week header: number, dates, phase, tools
+      var th = el('th', 'wk');
+      th.appendChild(el('b', null, 'Week ' + (wi + 1)));
+      if (o.dated){ var a = tParse(wk.days[0].d); th.appendChild(el('small', null, a.getDate() + '/' + (a.getMonth() + 1) + (tr.className ? ' · now' : ''))); }
+      var ph = el('select', 'phase'); ph.setAttribute('aria-label', 'Phase of week ' + (wi + 1));
+      ['base','build','peak','recovery','taper'].forEach(function(k){ var op = el('option', null, TRAIN_PHASES[k]); op.value = k; ph.appendChild(op); });
+      ph.value = wk.phase || 'base';
+      ph.addEventListener('change', function(){ wk.phase = ph.value; if (o.onPhase) o.onPhase(wi, ph.value); });
+      th.appendChild(ph);
+      var tools = el('div', 'wktools');
+      function tool(label, title, fn){ var b = el('button', null, label); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); b.addEventListener('click', fn); tools.appendChild(b); return b; }
+      tool('⧉', 'Copy week ' + (wi + 1) + ' to the next week', function(){ copyWeek(wi); });
+      tool('⌫', 'Clear week ' + (wi + 1) + ' (all rest)', async function(){
+        if (!(await uiConfirm('Make every day of week ' + (wi + 1) + ' a rest day?'))) return;
+        wk.days.forEach(function(d){ setRest(d); }); o.redraw();
+      });
+      if (o.canResize) tool('🗑', 'Remove week ' + (wi + 1), async function(){
+        if (weeks.length <= 1 || !(await uiConfirm('Remove week ' + (wi + 1) + '?'))) return;
+        weeks.splice(wi, 1); o.redraw();
+      }).disabled = weeks.length <= 1;
+      th.appendChild(tools);
+      tr.appendChild(th);
+      // the 7 days
+      var totCell = el('td', 'tot');
+      function updTot(){
+        var m = 0, k = 0; wk.days.forEach(function(d){ if (d.type !== 'rest'){ m += d.min || 0; k += estKm(d); } });
+        totCell.innerHTML = '<b></b><small></small>'; totCell.firstChild.textContent = trainHours(m); totCell.lastChild.textContent = '≈ ' + k + ' km';
+        if (o.onChange) o.onChange();
+      }
+      wk.days.forEach(function(day){
+        var info = dayInfo(day), td = el('td', 'cell' + (day.type === 'rest' ? ' rest' : ''));
+        td.style.setProperty('--zc', info.zone ? TRAIN_ZONES[info.zone].color : 'transparent');
+        if (o.dated){
+          var dt = tParse(day.d);
+          if (day.d === today) td.classList.add('today'); else if (day.d < today) td.classList.add('past');
+          td.appendChild(el('span', 'cdate', dt.getDate() + '/' + (dt.getMonth() + 1)));
+        }
+        // full workout name visible (wraps); the native dropdown sits invisibly on top of it
+        var cs = el('div', 'csel'), lbl = el('span', 'clbl', info.title);
+        var wsel = workoutSelect(day, o.redraw); wsel.title = info.title;
+        cs.appendChild(lbl); cs.appendChild(wsel); td.appendChild(cs);
+        var line = el('div', 'cline');
+        var mn = el('input'); mn.type = 'number'; mn.min = 0; mn.max = 480; mn.step = 5; mn.value = day.min || 0;
+        mn.setAttribute('aria-label', 'Minutes'); mn.disabled = day.type === 'rest' || day.type === 'custom';
+        mn.addEventListener('input', function(){ day.min = Math.max(0, Math.min(480, Math.round(+mn.value || 0))); updTot(); });
+        if (day.type !== 'rest'){ line.appendChild(mn); line.appendChild(el('span', 'u', 'min')); }
+        var nb = el('button', 'cnote' + (day.note ? ' has' : ''), '✎'); nb.type = 'button'; nb.setAttribute('aria-label', day.note ? 'Edit note' : 'Add a note');
+        nb.title = day.note ? 'Note: ' + day.note : 'Add a note for the rider';
+        nb.addEventListener('click', function(){ editNote(td, day, o.redraw); });
+        line.appendChild(nb);
+        td.appendChild(line);
+        if (day.note) td.appendChild(el('div', 'cnotetext', day.note));
+        var lg = o.log && o.log[day.d];
+        if (lg) td.appendChild(el('div', 'cfb ' + lg.status, lg.status === 'done' ? '✓ ' + (lg.score ? lg.score + '/10' : 'done') : 'skipped')).title = lg.text || '';
+        var rl = o.routes && o.routes[day.d];
+        if (rl){
+          var far = rl.planMin !== day.min || Math.abs(rl.estMin - day.min) > Math.max(10, day.min * 0.15);
+          var rr = el('div', 'croute' + (far ? ' off' : ''), '⌖ ' + rl.km + ' km'); rr.title = 'Route: ' + rl.km + ' km, ' + rl.gainM + ' m climbing, ≈ ' + trainHours(rl.estMin) + (far ? ' — does not fit the plan' : '');
+          td.appendChild(rr);
+        }
+        tr.appendChild(td);
+      });
+      tr.appendChild(totCell); updTot();
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); wrap.appendChild(t); box.appendChild(wrap);
+    if (o.canResize){
+      var add = el('button', 'ghost addweek', '+ Add week'); add.type = 'button';
+      add.disabled = weeks.length >= 16;
+      add.addEventListener('click', function(){ weeks.push({ phase: (weeks[weeks.length - 1] || {}).phase || 'base', days:[0,1,2,3,4,5,6].map(function(){ return { type:'rest', min:0 }; }) }); o.redraw(); });
+      box.appendChild(add);
+    }
+    async function copyWeek(wi){
+      var src = weeks[wi];
+      if (wi === weeks.length - 1){
+        if (!o.canResize){ (await uiAlert('This is the last week of the plan.')); return; }
+        if (weeks.length >= 16){ (await uiAlert('A plan can have up to 16 weeks.')); return; }
+        weeks.push({ phase: src.phase, days: src.days.map(function(d){ return copyDay(d, {}); }) });
+      } else {
+        if (!(await uiConfirm('Overwrite week ' + (wi + 2) + ' with a copy of week ' + (wi + 1) + '?'))) return;
+        weeks[wi + 1].days.forEach(function(d, i){ copyDay(src.days[i], d); });   // keeps the target's dates
+        weeks[wi + 1].phase = src.phase; if (o.onPhase) o.onPhase(wi + 1, src.phase);
+      }
+      o.redraw();
+    }
+  }
+  function copyDay(from, to){
+    to.type = from.type; to.min = from.min || 0;
+    if (from.note) to.note = from.note; else delete to.note;
+    if (from.type === 'custom'){ to.wid = from.wid; to.custom = JSON.parse(JSON.stringify(from.custom)); } else { delete to.wid; delete to.custom; }
+    return to;
+  }
+  function setRest(d){ d.type = 'rest'; d.min = 0; delete d.wid; delete d.custom; }
+  function editNote(td, day, redraw){
+    if (td.querySelector('.cnoteedit')) return;
+    var box = el('div', 'cnoteedit'), ta = el('textarea'); ta.maxLength = 200; ta.value = day.note || ''; ta.placeholder = 'Note for the rider';
+    var ok = el('button', 'ghost', 'OK'); ok.type = 'button';
+    function done(){ var v = ta.value.trim(); if (v) day.note = v; else delete day.note; redraw(); }
+    ok.addEventListener('click', done);
+    ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); done(); } if (e.key === 'Escape') redraw(); });
+    box.appendChild(ta); box.appendChild(ok); td.appendChild(box); ta.focus();
+  }
+
+  // ---------- riders as a table ----------
+  function riderTable(list){
+    var wrap = el('div', 'rtable-wrap'), t = el('table', 'rtable'), h = el('tr');
+    ['Rider','Team','Plan','Done','Score (14 d)','Latest reflection','Own plan'].forEach(function(x){ h.appendChild(el('th', null, x)); });
+    var thead = el('thead'); thead.appendChild(h); t.appendChild(thead);
+    var tb = el('tbody');
+    list.forEach(function(u){
+      var p = TR.plans[u.deviceId], tr = el('tr'); tr.tabIndex = 0;
+      tr.appendChild(el('td', 'nm', riderName(u)));
+      tr.appendChild(el('td', null, u.team || '—'));
+      tr.appendChild(el('td', null, !p ? 'No plan yet' : p.ended ? 'Ended ' + p.endDate : (p.templateName || TRAIN_GOALS[p.goal] || 'Plan') + (p.source === 'coach' ? ' (yours)' : ' (app)')));
+      tr.appendChild(el('td', 'num', p ? p.done + ' / ' + p.due : ''));
+      var sc = el('td', 'num', p && p.avgScore != null ? p.avgScore : '');
+      if (p && p.avgScore != null) sc.classList.add(p.avgScore < 5 ? 'low' : p.avgScore >= 7 ? 'high' : 'mid');
+      tr.appendChild(sc);
+      tr.appendChild(el('td', 'refl', p && p.lastReflection ? p.lastReflection.score + '/10 · “' + p.lastReflection.text + '”' : ''));
+      tr.appendChild(el('td', null, p && p.canEdit ? 'Allowed' : 'Off'));
+      tr.addEventListener('click', function(){ openRider(u); });
+      tr.addEventListener('keydown', function(e){ if (e.key === 'Enter') openRider(u); });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); wrap.appendChild(t);
+    return wrap;
+  }
+
+
+  /* ======================= RIDERS (setup by the admin) ======================= */
+  function agoText(iso){
+    if (!iso) return '';
+    var m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago';
+  }
+  // green = signed in on at least one phone, red = not signed in
+  function onlineDot(r){ var d = el('span', 'odot ' + (r.phones ? 'on' : 'off')); d.title = r.phones ? 'Signed in' : 'Not signed in'; d.setAttribute('aria-label', d.title); return d; }
+  function onlineText(r){
+    return r.phones ? 'Signed in' + (r.phones > 1 ? ' on ' + r.phones + ' phones' : '') + (r.lastSeenAt ? ' · seen ' + agoText(r.lastSeenAt) : '') : 'Signed out';
+  }
+  var RD = { list: [], edit: null, photo: undefined };   // photo: undefined = keep, null = remove, 'data:…' = new
+  function rdAge(d){ if (!d) return ''; var b = new Date(d + 'T12:00:00'), n = new Date(), a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; }
+  function rdInitials(r){ return (((r.firstName || '')[0] || '') + ((r.lastName || '')[0] || '')).toUpperCase(); }
+  function rdAvatar(r, size){
+    var a = el('span', 'avatar'); a.style.width = a.style.height = size + 'px'; a.style.fontSize = Math.round(size * 0.38) + 'px';
+    if (r.photoUrl) a.style.backgroundImage = 'url("' + r.photoUrl + '")'; else a.textContent = rdInitials(r);
+    return a;
+  }
+  function loadRiders(){
+    trMsg('rdStatus', 'Loading…');
+    return api('/api/riders').then(function(res){
+      if (res.status === 401){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} showLock('Unlock again.'); return; }
+      if (!res.ok){ trMsg('rdStatus', (res.data && res.data.error) || 'Could not load riders.', true); return; }
+      RD.list = res.data.riders || [];
+      trMsg('rdStatus', RD.list.length ? '' : 'No riders yet. Add your first rider: they sign in to the app with the login code you give them.');
+      var on = RD.list.filter(function(r){ return r.phones; }).length;
+      $('rdOnline').innerHTML = RD.list.length ? '<span class="odot on"></span>' + on + ' of ' + RD.list.length + ' riders signed in <small>· updates every minute</small>' : '';
+      renderRiderSetup();
+    }).catch(function(){ trMsg('rdStatus', 'No connection.', true); });
+  }
+  async function copyCode(code, btn){
+    function done(){ var t = btn.textContent; btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = t; }, 1200); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, async function(){ (await uiAlert(code, { title:'Login code' })); });
+    else (await uiAlert(code, { title:'Login code' }));
+  }
+  function renderRiderSetup(){
+    var q = $('rdSearch').value.trim().toLowerCase(), box = $('rdList'); box.innerHTML = '';
+    var list = RD.list.filter(function(r){ return !q || (r.firstName + ' ' + r.lastName + ' ' + (r.team || '') + ' ' + r.code).toLowerCase().indexOf(q) !== -1; });
+
+    if (!list.length){ if (RD.list.length) box.appendChild(el('p', 'empty-note', 'Nobody matches that search.')); return; }
+    if (isWide()){
+      var wrap = el('div', 'rtable-wrap'), t = el('table', 'rtable'), h = el('tr');
+      ['', 'Rider', 'Team', 'Home town', 'Sex', 'Age', 'Height', 'Weight', 'FTP', 'Login code', 'Status'].forEach(function(x){ h.appendChild(el('th', null, x)); });
+      var th = el('thead'); th.appendChild(h); t.appendChild(th);
+      var tb = el('tbody');
+      list.forEach(function(r){
+        var tr = el('tr'); tr.tabIndex = 0;
+        var c0 = el('td'); c0.appendChild(rdAvatar(r, 34)); tr.appendChild(c0);
+        var nmc = el('td', 'nm', r.firstName + ' ' + r.lastName); nmc.appendChild(onlineDot(r)); if (r.nickname) nmc.appendChild(el('span', 'nick', '“' + r.nickname + '”')); tr.appendChild(nmc);
+        var tc = el('td'); if (r.teamId && teamById(r.teamId)){ var dot = el('span', 'tdot'); dot.style.background = teamById(r.teamId).color; tc.appendChild(dot); } tc.appendChild(document.createTextNode(r.team || '—')); tr.appendChild(tc);
+        tr.appendChild(el('td', 'refl', r.homeTown || '—'));
+        tr.appendChild(el('td', null, { F:'F', M:'M', X:'X' }[r.sex] || '—'));
+        tr.appendChild(el('td', 'num', r.birthDate ? String(rdAge(r.birthDate)) : '—'));
+        tr.appendChild(el('td', 'num', r.heightCm ? r.heightCm + ' cm' : '—'));
+        tr.appendChild(el('td', 'num', r.weightKg ? r.weightKg + ' kg' : '—'));
+        tr.appendChild(el('td', 'num', r.ftp ? r.ftp + ' W' + (r.weightKg ? ' · ' + (r.ftp / r.weightKg).toFixed(1) : '') : '—'));
+        var cc = el('td'), cb = el('button', 'codebtn', r.code); cb.type = 'button'; cb.title = 'Copy the login code';
+        cb.addEventListener('click', function(e){ e.stopPropagation(); copyCode(r.code, cb); }); cc.appendChild(cb); tr.appendChild(cc);
+        tr.appendChild(el('td', 'ostat ' + (r.phones ? 'on' : 'off'), onlineText(r)));
+        tr.addEventListener('click', function(){ editRider(r); });
+        tr.addEventListener('keydown', function(e){ if (e.key === 'Enter') editRider(r); });
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb); wrap.appendChild(t); box.appendChild(wrap);
+      return;
+    }
+    var ul = el('ul', 'rlist');
+    list.forEach(function(r){
+      var li = el('li', 'rrow'); li.tabIndex = 0;
+      li.appendChild(rdAvatar(r, 44));
+      var main = el('div', 'rmain'), nb = el('b', null, r.firstName + ' ' + r.lastName); nb.appendChild(onlineDot(r)); main.appendChild(nb);
+      main.appendChild(el('span', 'rsub', (r.nickname ? '“' + r.nickname + '” · ' : '') + (r.team || 'No team')));
+      main.appendChild(el('span', 'ostat ' + (r.phones ? 'on' : 'off'), onlineText(r)));
+      li.appendChild(main);
+      var cb = el('button', 'codebtn', r.code); cb.type = 'button'; cb.title = 'Copy the login code';
+      cb.addEventListener('click', function(e){ e.stopPropagation(); copyCode(r.code, cb); });
+      li.appendChild(cb);
+      li.addEventListener('click', function(){ editRider(r); });
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+  $('rdSearch').addEventListener('input', renderRiderSetup);
+  setInterval(function(){
+    if (!$('app').hidden && !$('paneRiders').hidden && !$('rdListBox').hidden && document.visibilityState === 'visible') loadRiders();
+  }, 60000);
+
+  function editRider(r){
+    RD.edit = r ? JSON.parse(JSON.stringify(r)) : { firstName:'', lastName:'', team:'', sex:'', birthDate:'', heightCm:'', weightKg:'', ftp:'', notes:'', code:'' };
+    RD.photo = undefined;
+    $('rdListBox').hidden = true; $('rdEditor').hidden = false;
+    $('rdTitle').textContent = r ? r.firstName + ' ' + r.lastName : 'New rider';
+    $('rdFirst').value = RD.edit.firstName; $('rdLast').value = RD.edit.lastName; fillTeamSelect(); $('rdTeam').value = RD.edit.teamId || '';
+    $('rdSex').value = RD.edit.sex || ''; $('rdBirth').value = RD.edit.birthDate || '';
+    $('rdHeight').value = RD.edit.heightCm || ''; $('rdWeight').value = RD.edit.weightKg || ''; $('rdFtp').value = RD.edit.ftp || '';
+    $('rdNotes').value = RD.edit.notes || ''; $('rdNick').value = RD.edit.nickname || ''; $('rdHome').value = RD.edit.homeTown || '';
+    $('rdCode').value = RD.edit.code || newLocalCode();
+    $('rdDelete').hidden = !r; $('rdResetCode').hidden = !r; $('rdInfo').textContent = r ? (r.lastLoginAt ? 'Last signed in ' + new Date(r.lastLoginAt).toLocaleString() + '.' : 'Has not signed in yet.') +
+      (r.updatedByRider ? ' Rider changed their details on ' + new Date(r.updatedByRider).toLocaleDateString() + '.' : '') : 'The rider signs in to the app with this code.';
+    paintRdPhoto(RD.edit.photoUrl || '');
+    trMsg('rdResult', '');
+    window.scrollTo(0, 0);
+  }
+  function newLocalCode(){ var c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = ''; for (var i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+  function paintRdPhoto(url){
+    var p = $('rdPhoto'); p.style.backgroundImage = url ? 'url("' + url + '")' : ''; p.textContent = url ? '' : (rdInitials({ firstName: $('rdFirst').value, lastName: $('rdLast').value }) || '+');
+    $('rdPhotoRemove').hidden = !url;
+  }
+  $('rdNewCode').addEventListener('click', function(){ $('rdCode').value = newLocalCode(); });
+  $('rdCopyCode').addEventListener('click', function(){ copyCode($('rdCode').value.trim().toUpperCase(), this); });
+  $('rdCode').addEventListener('input', function(){ var v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (v !== this.value) this.value = v; });
+  $('rdFirst').addEventListener('input', function(){ if (!RD.photo && !RD.edit.photoUrl) paintRdPhoto(''); });
+  $('rdLast').addEventListener('input', function(){ if (!RD.photo && !RD.edit.photoUrl) paintRdPhoto(''); });
+  // photo: shrink in the browser (max 640 px, JPEG) before upload
+  $('rdPhotoInput').addEventListener('change', function(){
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f) return;
+    if (!/^image\//.test(f.type)){ trMsg('rdResult', 'Choose a photo (JPEG, PNG…).', true); return; }
+    var rd = new FileReader();
+    rd.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var max = 640, k = Math.min(1, max / Math.max(img.width, img.height));
+        var c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        RD.photo = c.toDataURL('image/jpeg', 0.82);
+        paintRdPhoto(RD.photo); trMsg('rdResult', 'Photo ready: tap Save rider to keep it.');
+      };
+      img.onerror = function(){ trMsg('rdResult', 'That photo could not be read.', true); };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+  });
+  $('rdPhotoRemove').addEventListener('click', function(){ RD.photo = null; RD.edit.photoUrl = ''; paintRdPhoto(''); });
+  $('rdBack').addEventListener('click', function(){ $('rdEditor').hidden = true; $('rdListBox').hidden = false; renderRiderSetup(); });
+  $('rdSave').addEventListener('click', async function(){
+    var newCode = $('rdCode').value.trim().toUpperCase();
+    if (RD.edit.id && RD.edit.code && newCode !== RD.edit.code){
+      if (!(await uiConfirm(codeChangeWarning(RD.edit), { title:'Change the login code?', ok:'Change code', cancel:'Keep old code', danger:true }))){ $('rdCode').value = RD.edit.code; return; }
+    }
+    saveRiderNow(false);
+  });
+  function saveRiderNow(codeReset){
+    var r = { id: RD.edit.id, firstName: $('rdFirst').value.trim(), lastName: $('rdLast').value.trim(), teamId: $('rdTeam').value,
+              sex: $('rdSex').value, birthDate: $('rdBirth').value, heightCm: $('rdHeight').value, weightKg: $('rdWeight').value, ftp: $('rdFtp').value,
+              notes: $('rdNotes').value.trim(), nickname: $('rdNick').value.trim(), homeTown: $('rdHome').value.trim(), code: $('rdCode').value.trim() };
+    if (!r.firstName || !r.lastName){ trMsg('rdResult', 'First and last name are required.', true); return; }
+    var codeChanged = !!(RD.edit.id && RD.edit.code && r.code.toUpperCase() !== RD.edit.code);
+    if (r.code.length < 4){ trMsg('rdResult', 'The login code needs at least 4 letters or digits.', true); return; }
+    var body = { rider: r }; if (RD.photo !== undefined) body.photo = RD.photo;
+    var btn = $('rdSave'); btn.disabled = true; trMsg('rdResult', 'Saving…');
+    api('/api/riders', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }).then(function(res){
+      btn.disabled = false;
+      if (!res.ok){ trMsg('rdResult', (res.data && res.data.error) || 'Could not save.', true); return; }
+      RD.edit = res.data.rider; RD.photo = undefined;
+      $('rdTitle').textContent = RD.edit.firstName + ' ' + RD.edit.lastName; $('rdDelete').hidden = false;
+      paintRdPhoto(RD.edit.photoUrl || '');
+      trMsg('rdResult', codeChanged || codeReset
+        ? 'New login code: ' + RD.edit.code + '. ' + RD.edit.firstName + ' is signed out on every phone and signs in again with this code.'
+        : 'Saved. Login code: ' + RD.edit.code + '. Give this code to the rider; they enter it once in the app.');
+      loadRiders();
+    }).catch(function(){ btn.disabled = false; trMsg('rdResult', 'No connection. Not saved.', true); });
+  }
+  $('rdDelete').addEventListener('click', async function(){
+    var name = RD.edit.firstName + ' ' + RD.edit.lastName;
+    if (!(await uiConfirm('Delete ' + name + '? Their plan, feedback, routes and notifications are deleted too. Their phone is signed out.'))) return;
+    api('/api/riders', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id: RD.edit.id }) }).then(function(res){
+      if (!res.ok){ trMsg('rdResult', (res.data && res.data.error) || 'Could not delete.', true); return; }
+      $('rdEditor').hidden = true; $('rdListBox').hidden = false; loadRiders();
+    });
+  });
+  $('rdAdd').addEventListener('click', function(){ editRider(null); });
+
+  // clean sheet
+  $('rsConfirm').addEventListener('input', function(){ $('rsGo').disabled = this.value.trim() !== 'DELETE'; });
+  $('rsGo').addEventListener('click', function(){
+    var btn = this; btn.disabled = true; trMsg('rsResult', 'Deleting…');
+    api('/api/admin-reset', { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ confirm:'DELETE', keepRiders: $('rsKeepRiders').checked, keepLibrary: $('rsKeepLib').checked }) })
+      .then(function(res){
+        if (!res.ok){ btn.disabled = false; trMsg('rsResult', (res.data && res.data.error) || 'Could not delete.', true); return; }
+        $('rsConfirm').value = '';
+        trMsg('rsResult', 'Done: ' + res.data.deleted + ' stored items deleted. Phones clear their old data by themselves on their next start.');
+        loadRiders();
+      }).catch(function(){ btn.disabled = false; trMsg('rsResult', 'No connection.', true); });
+  });
+
+
+  /* ======================= TEAMS ======================= */
+  var TM = { list: [], edit: null, logo: undefined, members: {} };
+  var TEAM_COLORS = ['#fbc120','#e8833a','#d64545','#c2417a','#8e5bd6','#2e86de','#1aa3a3','#3fa34d','#8a9a2b','#9a9a9a'];
+  function teamById(id){ return TM.list.filter(function(t){ return t.id === id; })[0] || null; }
+  function teamBadge(t, size){
+    var b = el('span', 'tbadge'); b.style.width = b.style.height = size + 'px'; b.style.backgroundColor = (t && t.color) || 'var(--char-3)';
+    if (t && t.logoUrl){ b.style.backgroundImage = 'url("' + t.logoUrl + '")'; b.classList.add('haslogo'); }
+    else b.textContent = t ? (t.name || '?').replace(/\s+/g, '').slice(0, 4).toUpperCase() : '—';
+    b.style.fontSize = Math.round(size * 0.26) + 'px';
+    return b;
+  }
+  function loadTeams(){
+    return api('/api/teams').then(function(res){
+      if (res.status === 401){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} showLock('Unlock again.'); return; }
+      if (!res.ok){ trMsg('tmStatus', (res.data && res.data.error) || 'Could not load teams.', true); return; }
+      TM.list = res.data.teams || [];
+      fillTeamSelect();
+    }).catch(function(){ trMsg('tmStatus', 'No connection.', true); });
+  }
+  // the team dropdown in the rider form
+  function fillTeamSelect(){
+    var sel = $('rdTeam'), cur = sel.value; sel.innerHTML = '';
+    var o = el('option', null, 'No team'); o.value = ''; sel.appendChild(o);
+    TM.list.forEach(function(t){ var x = el('option', null, t.name); x.value = t.id; sel.appendChild(x); });
+    var nw = el('option', null, '＋ New team…'); nw.value = '__new'; sel.appendChild(nw);
+    sel.value = cur === '__new' ? '' : cur;
+    paintTeamPick();
+  }
+  function paintTeamPick(){ var t = teamById($('rdTeam').value); $('rdTeam').style.borderLeft = t ? '6px solid ' + t.color : ''; }
+  $('rdTeam').addEventListener('change', async function(){
+    var sel = this;
+    if (sel.value !== '__new'){ paintTeamPick(); return; }
+    var name = ((await uiPrompt('Team name', '', { title:'New team', ok:'Make team' })) || '').trim();
+    if (!name){ sel.value = RD.edit.teamId || ''; paintTeamPick(); return; }
+    api('/api/teams', { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ team: { name: name, color: TEAM_COLORS[TM.list.length % TEAM_COLORS.length] } }) }).then(async function(res){
+      if (!res.ok){ (await uiAlert((res.data && res.data.error) || 'Could not make the team.')); sel.value = RD.edit.teamId || ''; paintTeamPick(); return; }
+      loadTeams().then(function(){ sel.value = res.data.team.id; paintTeamPick(); trMsg('rdResult', 'Team ' + res.data.team.name + ' made. Tap Save rider to put this rider in it.'); });
+    });
+  });
+  function renderTeamCards(){
+    var box = $('tmList'); box.innerHTML = '';
+    trMsg('tmStatus', TM.list.length ? '' : 'No teams yet. Make a team, then link riders to it here or in the rider form.');
+    TM.list.forEach(function(t){
+      var c = el('button', 'tcard'); c.type = 'button'; c.style.setProperty('--tc', t.color || '#fbc120');
+      c.appendChild(teamBadge(t, 56));
+      var m = el('div', 'tmain'); m.appendChild(el('b', null, t.name));
+      m.appendChild(el('span', 'rsub', t.riders + ' rider' + (t.riders === 1 ? '' : 's')));
+      if (t.about) m.appendChild(el('span', 'tabout', t.about));
+      c.appendChild(m);
+      c.addEventListener('click', function(){ editTeam(t); });
+      box.appendChild(c);
+    });
+    var free = RD.list.filter(function(r){ return !r.teamId; }).length;
+    if (TM.list.length && free) box.appendChild(el('p', 'empty-note', free + ' rider' + (free === 1 ? ' has' : 's have') + ' no team yet.'));
+  }
+  function editTeam(t){
+    TM.edit = t ? JSON.parse(JSON.stringify(t)) : { name:'', color: TEAM_COLORS[TM.list.length % TEAM_COLORS.length], about:'' };
+    TM.logo = undefined;
+    TM.members = {}; RD.list.forEach(function(r){ if (t && r.teamId === t.id) TM.members[r.id] = true; });
+    $('tmListBox').hidden = true; $('tmEditor').hidden = false;
+    $('tmTitle').textContent = t ? t.name : 'New team';
+    $('tmName').value = TM.edit.name; $('tmAbout').value = TM.edit.about || ''; $('tmColor').value = TM.edit.color;
+    $('tmDelete').hidden = !t; trMsg('tmResult', '');
+    renderSwatches(); paintTeamLogo(); renderMembers();
+    window.scrollTo(0, 0);
+  }
+  function renderSwatches(){
+    var box = $('tmSwatches'); box.innerHTML = '';
+    TEAM_COLORS.forEach(function(c){
+      var s = el('button', 'swatch'); s.type = 'button'; s.style.background = c; s.title = c; s.setAttribute('aria-label', 'Colour ' + c);
+      s.setAttribute('aria-pressed', String(c.toLowerCase() === $('tmColor').value.toLowerCase()));
+      s.addEventListener('click', function(){ $('tmColor').value = c; renderSwatches(); paintTeamLogo(); });
+      box.appendChild(s);
+    });
+  }
+  $('tmColor').addEventListener('input', function(){ renderSwatches(); paintTeamLogo(); });
+  $('tmName').addEventListener('input', paintTeamLogo);
+  function paintTeamLogo(){
+    var url = TM.logo !== undefined ? (TM.logo || '') : (TM.edit.logoUrl || '');
+    var b = $('tmLogo'); b.style.backgroundColor = $('tmColor').value;
+    if (url) b.style.backgroundColor = '#fff';
+    b.style.backgroundImage = url ? 'url("' + url + '")' : ''; b.textContent = url ? '' : ($('tmName').value.trim().replace(/\s+/g, '').slice(0, 4).toUpperCase() || '+');
+    $('tmLogoRemove').hidden = !url;
+  }
+  $('tmLogoInput').addEventListener('change', function(){
+    var f = this.files && this.files[0]; this.value = '';
+    if (!f || !/^image\//.test(f.type)) return;
+    var rd = new FileReader();
+    rd.onload = function(){ var img = new Image(); img.onload = function(){
+      var k = Math.min(1, 640 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      TM.logo = c.toDataURL(f.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+      if (TM.logo.length > 700000) TM.logo = c.toDataURL('image/jpeg', 0.8);
+      paintTeamLogo(); trMsg('tmResult', 'Logo ready: tap Save team to keep it.');
+    }; img.src = rd.result; };
+    rd.readAsDataURL(f);
+  });
+  $('tmLogoRemove').addEventListener('click', function(){ TM.logo = null; paintTeamLogo(); });
+  function renderMembers(){
+    var q = $('tmSearch').value.trim().toLowerCase(), box = $('tmMembers'); box.innerHTML = '';
+    var list = RD.list.slice().sort(function(a, b){ return (b.teamId === TM.edit.id) - (a.teamId === TM.edit.id) || (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName); })
+      .filter(function(r){ return !q || (r.firstName + ' ' + r.lastName + ' ' + (r.team || '')).toLowerCase().indexOf(q) !== -1; });
+    if (!RD.list.length){ box.appendChild(el('div', 'empty-note', 'No riders yet: add riders under Riders first.')); }
+    list.forEach(function(r){
+      var l = el('label'), c = el('input'); c.type = 'checkbox'; c.checked = !!TM.members[r.id];
+      c.addEventListener('change', function(){ if (c.checked) TM.members[r.id] = true; else delete TM.members[r.id]; memberCount(); renderMembers(); });
+      l.appendChild(c); l.appendChild(rdAvatar(r, 30));
+      var nm = el('span', 'nm', r.firstName + ' ' + r.lastName);
+      var other = r.teamId && r.teamId !== TM.edit.id;
+      nm.appendChild(el('span', 'sub' + (other && TM.members[r.id] ? ' move' : ''),
+        other ? (TM.members[r.id] ? 'moves from ' + r.team + ' to this team' : 'now in ' + r.team) : (r.teamId ? 'in this team' : 'no team')));
+      l.appendChild(nm); box.appendChild(l);
+    });
+    memberCount();
+  }
+  function memberCount(){ var n = Object.keys(TM.members).length; $('tmCount').textContent = n + ' rider' + (n === 1 ? '' : 's') + ' in this team'; }
+  $('tmSearch').addEventListener('input', renderMembers);
+  $('tmBack').addEventListener('click', function(){ $('tmEditor').hidden = true; $('tmListBox').hidden = false; renderTeamCards(); });
+  $('tmAdd').addEventListener('click', function(){ editTeam(null); });
+  $('tmSave').addEventListener('click', function(){
+    var t = { id: TM.edit.id, name: $('tmName').value.trim(), color: $('tmColor').value, about: $('tmAbout').value.trim() };
+    if (!t.name){ trMsg('tmResult', 'Give the team a name.', true); return; }
+    var body = { team: t, members: Object.keys(TM.members) }; if (TM.logo !== undefined) body.photo = TM.logo;
+    var btn = this; btn.disabled = true; trMsg('tmResult', 'Saving…');
+    api('/api/teams', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }).then(function(res){
+      btn.disabled = false;
+      if (!res.ok){ trMsg('tmResult', (res.data && res.data.error) || 'Could not save.', true); return; }
+      TM.edit = res.data.team; TM.logo = undefined; $('tmTitle').textContent = TM.edit.name; $('tmDelete').hidden = false;
+      trMsg('tmResult', 'Saved: ' + TM.edit.riders + ' rider' + (TM.edit.riders === 1 ? '' : 's') + ' in ' + TM.edit.name + '.');
+      Promise.all([loadTeams(), loadRiders()]).then(function(){ renderMembers(); paintTeamLogo(); });
+    }).catch(function(){ btn.disabled = false; trMsg('tmResult', 'No connection. Not saved.', true); });
+  });
+  $('tmDelete').addEventListener('click', async function(){
+    var n = RD.list.filter(function(r){ return r.teamId === TM.edit.id; }).length;
+    if (!(await uiConfirm('Delete team ' + TM.edit.name + '?' + (n ? ' Its ' + n + ' rider' + (n === 1 ? '' : 's') + ' will have no team (the riders themselves stay).' : '')))) return;
+    api('/api/teams', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id: TM.edit.id }) }).then(function(res){
+      if (!res.ok){ trMsg('tmResult', (res.data && res.data.error) || 'Could not delete.', true); return; }
+      $('tmEditor').hidden = true; $('tmListBox').hidden = false;
+      Promise.all([loadTeams(), loadRiders()]).then(renderTeamCards);
+    });
+  });
+  $('rdManageTeams').addEventListener('click', function(){ showMainTab('teams'); });
+
+
+  /* ======================= CALENDAR: races, club trainings, events ======================= */
+  var RC = { list: [], view: 'upcoming', kind: 'all', edit: null, pick: {},
+    kinds: { race:['Road race','Criterium','Time trial','Gravel','Cyclocross','Mountain bike','Stage race','Kermesse','Other'],
+             training:['Group ride','Track session','Gym / strength','Recon ride','Skills','Other'],
+             event:['Sponsor event','Photo shoot','Team presentation','Fair / expo','Social','Other'] } };
+  var KIND = { race:{ one:'race', One:'Race', icon:'🏁' }, training:{ one:'training', One:'Training', icon:'🚴' }, event:{ one:'event', One:'Event', icon:'🤝' } };
+  function rcToday(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function rcDate(iso){ return new Date(iso + 'T12:00:00'); }
+  function kindOf(rc){ return KIND[rc.kind] ? rc.kind : 'race'; }
+  function loadRaces(){
+    trMsg('rcStatus', 'Loading…');
+    return Promise.all([api('/api/races'), loadTeams(), loadRiders()]).then(function(r){
+      var res = r[0];
+      if (res.status === 401){ try{ localStorage.removeItem(KEY_STORE); }catch(x){} showLock('Unlock again.'); return; }
+      if (!res.ok){ trMsg('rcStatus', (res.data && res.data.error) || 'Could not load the calendar.', true); return; }
+      RC.list = res.data.races || []; if (res.data.kinds) RC.kinds = res.data.kinds;
+      trMsg('rcStatus', ''); renderRaces();
+    }).catch(function(){ trMsg('rcStatus', 'No connection.', true); });
+  }
+  function bindSeg(id, key){
+    Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' button'), function(b){
+      b.addEventListener('click', function(){ RC[key] = b.dataset.v; Array.prototype.forEach.call(document.querySelectorAll('#' + id + ' button'), function(x){ x.setAttribute('aria-pressed', String(x === b)); }); renderRaces(); });
+    });
+  }
+  bindSeg('rcSeg', 'view'); bindSeg('rcKindSeg', 'kind');
+  function selectedIds(rc){ return Object.keys(rc.entries || {}).filter(function(id){ return rc.entries[id].status === 'selected'; }); }
+  function riderOf(id){ return RD.list.filter(function(r){ return r.id === id; })[0]; }
+  function replyCounts(rc){
+    var c = { yes:0, no:0, open:0 };
+    selectedIds(rc).forEach(function(id){ var rp = rc.entries[id].reply; if (rp === 'yes') c.yes++; else if (rp === 'no') c.no++; else c.open++; });
+    return c;
+  }
+  function renderRaces(){
+    var box = $('rcList'); box.innerHTML = '';
+    var today = rcToday();
+    var list = RC.list.filter(function(r){ return (RC.kind === 'all' || kindOf(r) === RC.kind) && (RC.view === 'all' || (RC.view === 'upcoming' ? r.date >= today : r.date < today)); });
+    if (RC.view === 'past') list.reverse();
+    if (!list.length){ box.appendChild(el('p', 'empty-note', RC.view === 'upcoming' ? 'Nothing planned yet. Use + Race, + Training or + Event.' : 'Nothing here yet.')); return; }
+    var month = '';
+    list.forEach(function(rc){
+      var k = kindOf(rc), d = rcDate(rc.date), m = d.toLocaleDateString([], { month:'long', year:'numeric' });
+      if (m !== month){ month = m; box.appendChild(el('h3', 'rc-month', m)); }
+      var row = el('button', 'rc-row kind-' + k + (rc.cancelled ? ' cancelled' : '') + (rc.date < today ? ' past' : '')); row.type = 'button';
+      var db = el('span', 'rc-date'); db.appendChild(el('b', null, String(d.getDate()))); db.appendChild(el('small', null, d.toLocaleDateString([], { weekday:'short' })));
+      row.appendChild(db);
+      var main = el('span', 'rc-main');
+      main.appendChild(el('b', null, rc.name));
+      var meta = el('span', 'rc-meta');
+      meta.appendChild(el('span', 'rc-kind k-' + k, KIND[k].icon + ' ' + KIND[k].One));
+      meta.appendChild(el('span', 'rc-type', rc.type));
+      if (rc.cancelled) meta.appendChild(el('span', 'rc-cancel', 'Cancelled'));
+      meta.appendChild(document.createTextNode([rc.time, rc.location, rc.distanceKm ? rc.distanceKm + ' km' : ''].filter(Boolean).join(' · ')));
+      main.appendChild(meta); row.appendChild(main);
+      var sel = selectedIds(rc), c = replyCounts(rc), side = el('span', 'rc-side');
+      var faces = el('span', 'rc-faces');
+      sel.slice(0, 5).forEach(function(id){ var r = riderOf(id); if (r) faces.appendChild(rdAvatar(r, 30)); });
+      side.appendChild(faces);
+      var rp = el('span', 'rc-replies');
+      rp.innerHTML = '<span class="y">✓ ' + c.yes + '</span><span class="n">✗ ' + c.no + '</span><span class="o">? ' + c.open + '</span>';
+      rp.title = c.yes + ' coming, ' + c.no + ' not coming, ' + c.open + ' no reply yet';
+      side.appendChild(rp);
+      row.appendChild(side);
+      row.addEventListener('click', function(){ editRace(rc); });
+      box.appendChild(row);
+    });
+  }
+  function editRace(rc, newKind){
+    RC.edit = rc ? JSON.parse(JSON.stringify(rc)) : { kind: newKind || 'race', date:'', time:'', name:'', type:'', location:'', distanceKm:'', notes:'', entries:{} };
+    var k = kindOf(RC.edit);
+    RC.pick = {}; selectedIds(RC.edit).forEach(function(id){ RC.pick[id] = true; });
+    $('rcListBox').hidden = true; $('rcEditor').hidden = false;
+    $('rcTitle').textContent = rc ? rc.name : 'New ' + KIND[k].one;
+    $('rcKindTag').className = 'rc-kind big k-' + k; $('rcKindTag').textContent = KIND[k].icon + ' ' + KIND[k].One;
+    $('rcNameLbl').firstChild.textContent = KIND[k].One + ' name';
+    $('rcName').placeholder = { race:'e.g. GP Eeklo', training:'e.g. Tuesday club ride', event:'e.g. Sponsor evening Winsol' }[k];
+    $('rcWhere').placeholder = { race:'e.g. Eeklo', training:'e.g. Clubhouse, Eeklo', event:'e.g. Winsol HQ, Kaprijke' }[k];
+    $('rcDistLbl').hidden = k === 'event';
+    var ts = $('rcType'); ts.innerHTML = ''; (RC.kinds[k] || []).forEach(function(t){ var o = el('option', null, t); o.value = t; ts.appendChild(o); });
+    $('rcDateIn').value = RC.edit.date; $('rcTimeIn').value = RC.edit.time || ''; $('rcName').value = RC.edit.name; ts.value = RC.edit.type || (RC.kinds[k] || [''])[0];
+    $('rcWhere').value = RC.edit.location || ''; $('rcDist').value = RC.edit.distanceKm || ''; $('rcNotes').value = RC.edit.notes || '';
+    $('rcCancelled').hidden = !RC.edit.cancelled;
+    if (RC.edit.cancelled) $('rcCancelled').textContent = 'Cancelled on ' + new Date(RC.edit.cancelledAt).toLocaleDateString() + '. Riders still see it, marked “cancelled”.';
+    $('rcSave').textContent = rc ? 'Save' : 'Save ' + KIND[k].one;
+    $('rcCancel').textContent = 'Cancel this ' + KIND[k].one; $('rcRestore').textContent = KIND[k].One + ' is on again';
+    $('rcCancel').hidden = !rc || !!RC.edit.cancelled; $('rcRestore').hidden = !RC.edit.cancelled; $('rcDelete').hidden = !RC.edit.cancelled;
+    trMsg('rcResult', '');
+    renderRacePick();
+    window.scrollTo(0, 0);
+    if (!rc) setTimeout(function(){ $('rcDateIn').focus(); }, 50);
+  }
+  function renderRacePick(){
+    var q = $('rcSearch').value.trim().toLowerCase(), box = $('rcRiders'), chips = $('rcTeams');
+    box.innerHTML = ''; chips.innerHTML = '';
+    function chip(label, fn, color){ var c = el('button', 'chip', label); c.type = 'button'; if (color) c.style.borderColor = color; c.addEventListener('click', function(){ fn(); renderRacePick(); }); chips.appendChild(c); }
+    chip('+ Everyone', function(){ RD.list.forEach(function(r){ RC.pick[r.id] = true; }); });
+    TM.list.forEach(function(t){ chip('+ ' + t.name, function(){ RD.list.forEach(function(r){ if (r.teamId === t.id) RC.pick[r.id] = true; }); }, t.color); });
+    chip('Nobody', function(){ RC.pick = {}; });
+    var list = RD.list.slice().sort(function(a, b){ return (!!RC.pick[b.id]) - (!!RC.pick[a.id]) || (a.team || '~').localeCompare(b.team || '~') || (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName); })
+      .filter(function(r){ return !q || (r.firstName + ' ' + r.lastName + ' ' + (r.team || '') + ' ' + (r.nickname || '')).toLowerCase().indexOf(q) !== -1; });
+    if (!RD.list.length) box.appendChild(el('div', 'empty-note', 'No riders yet: add riders under Riders first.'));
+    list.forEach(function(r){
+      var l = el('label'), c = el('input'); c.type = 'checkbox'; c.checked = !!RC.pick[r.id];
+      c.addEventListener('change', function(){ if (c.checked) RC.pick[r.id] = true; else delete RC.pick[r.id]; raceCount(); renderRacePick(); });
+      l.appendChild(c); l.appendChild(rdAvatar(r, 30));
+      var nm = el('span', 'nm', r.firstName + ' ' + r.lastName), e = (RC.edit.entries || {})[r.id];
+      var sub = (r.team || 'No team') + (r.nickname ? ' · “' + r.nickname + '”' : '');
+      if (e && e.status === 'removed' && !RC.pick[r.id]) sub += ' · taken off ' + new Date(e.removedAt).toLocaleDateString();
+      else if (e && e.status === 'selected' && !RC.pick[r.id]) sub += ' · will be taken off (stays visible for the rider)';
+      else if (e && e.status === 'removed' && RC.pick[r.id]) sub += ' · selected again';
+      nm.appendChild(el('span', 'sub' + (e && !RC.pick[r.id] ? ' off' : ''), sub));
+      l.appendChild(nm);
+      if (e && e.status === 'selected' && RC.pick[r.id]){
+        var rp = e.reply === 'yes' ? ['y', '✓ Coming'] : e.reply === 'no' ? ['n', '✗ Not coming'] : ['o', '? No reply'];
+        l.appendChild(el('span', 'rbadge ' + rp[0], rp[1]));
+      }
+      box.appendChild(l);
+    });
+    raceCount();
+  }
+  function raceCount(){
+    var n = Object.keys(RC.pick).length, c = RC.edit && RC.edit.id ? replyCounts(RC.edit) : null;
+    $('rcCount').textContent = n + ' invited' + (c && (c.yes || c.no) ? ' · ✓ ' + c.yes + ' coming · ✗ ' + c.no + ' not · ? ' + c.open : '');
+  }
+  $('rcSearch').addEventListener('input', renderRacePick);
+  ['race','training','event'].forEach(function(k){ $('rcAdd_' + k).addEventListener('click', function(){ editRace(null, k); }); });
+  $('rcBack').addEventListener('click', function(){ $('rcEditor').hidden = true; $('rcListBox').hidden = false; renderRaces(); });
+  $('rcSave').addEventListener('click', function(){
+    var k = kindOf(RC.edit);
+    var race = { id: RC.edit.id, kind: k, date: $('rcDateIn').value, time: $('rcTimeIn').value, name: $('rcName').value.trim(), type: $('rcType').value,
+                 location: $('rcWhere').value.trim(), distanceKm: k === 'event' ? '' : $('rcDist').value, notes: $('rcNotes').value.trim() };
+    if (!race.date || !race.name){ trMsg('rcResult', 'Give it a date and a name.', true); return; }
+    var btn = this; btn.disabled = true; trMsg('rcResult', 'Saving…');
+    api('/api/races', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ race: race, riderIds: Object.keys(RC.pick) }) }).then(function(res){
+      btn.disabled = false;
+      if (!res.ok){ trMsg('rcResult', (res.data && res.data.error) || 'Could not save.', true); return; }
+      var wasNew = !RC.edit.id; RC.edit = res.data.race; $('rcTitle').textContent = RC.edit.name; $('rcSave').textContent = 'Save'; $('rcCancel').hidden = !!RC.edit.cancelled;
+      var n = selectedIds(RC.edit).length;
+      trMsg('rcResult', (wasNew ? KIND[k].One + ' added' : 'Saved') + ': ' + n + ' rider' + (n === 1 ? '' : 's') + ' invited. They see it in their calendar and confirm whether they come.');
+      api('/api/races').then(function(r2){ if (r2.ok) RC.list = r2.data.races || []; renderRacePick(); });
+    }).catch(function(){ btn.disabled = false; trMsg('rcResult', 'No connection. Not saved.', true); });
+  });
+  function raceAction(action, okText){
+    return api('/api/races', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id: RC.edit.id, action: action }) }).then(function(res){
+      if (!res.ok){ trMsg('rcResult', (res.data && res.data.error) || 'Could not change it.', true); return; }
+      api('/api/races').then(function(r2){ if (r2.ok) RC.list = r2.data.races || []; editRace(res.data.race); trMsg('rcResult', okText); });
+    });
+  }
+  $('rcCancel').addEventListener('click', async function(){
+    var k = KIND[kindOf(RC.edit)];
+    if (!(await uiConfirm('It stays in the calendar, marked “cancelled” in red, for you and the riders.', { title:'Cancel ' + RC.edit.name + '?', ok:'Yes, cancel ' + k.one, cancel:'No, keep it', danger:true }))) return;
+    raceAction('cancel', k.One + ' cancelled. Riders see it marked “cancelled”.');
+  });
+  $('rcRestore').addEventListener('click', function(){ raceAction('restore', KIND[kindOf(RC.edit)].One + ' is on again.'); });
+  $('rcDelete').addEventListener('click', async function(){
+    if (!(await uiConfirm('It disappears from every calendar. Only for something entered by mistake.', { title:'Delete ' + RC.edit.name + ' for good?', ok:'Delete', cancel:'Keep it', danger:true }))) return;
+    api('/api/races', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id: RC.edit.id }) }).then(function(res){
+      if (!res.ok){ trMsg('rcResult', (res.data && res.data.error) || 'Could not delete.', true); return; }
+      $('rcEditor').hidden = true; $('rcListBox').hidden = false; loadRaces();
+    });
+  });
+
+  /* ---------- delete training plans (all, or one rider) ---------- */
+  $('dpConfirm').addEventListener('input', function(){ $('dpGo').disabled = this.value.trim() !== 'DELETE'; });
+  $('dpGo').addEventListener('click', function(){
+    var btn = this; btn.disabled = true; trMsg('dpResult', 'Deleting…');
+    api('/api/plan', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ all:true, confirm:'DELETE' }) }).then(function(res){
+      if (!res.ok){ btn.disabled = false; trMsg('dpResult', (res.data && res.data.error) || 'Could not delete.', true); return; }
+      $('dpConfirm').value = '';
+      trMsg('dpResult', 'All training plans are deleted (' + res.data.deleted + ' stored items).');
+      loadTraining();
+    }).catch(function(){ btn.disabled = false; trMsg('dpResult', 'No connection.', true); });
+  });
+  $('rvDeletePlan').addEventListener('click', async function(){
+    var u = TR.rider;
+    if (!(await uiConfirm('Delete ' + riderName(u) + '’s plan, with their feedback and linked routes?', { ok:'Delete plan', cancel:'Keep it', danger:true }))) return;
+    api('/api/plan', { method:'DELETE', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ deviceId: u.deviceId }) }).then(function(res){
+      if (!res.ok){ trMsg('rvResult', (res.data && res.data.error) || 'Could not delete.', true); return; }
+      loadTrainingQuiet().then(function(){ openRider(u); trMsg('rvResult', 'Plan deleted.'); });
+    });
+  });
+
+  /* ---------- login codes: reset one rider, or everyone ---------- */
+  function codeChangeWarning(r){ return r.firstName + ' ' + r.lastName + ' is signed out on every phone and signs in again with the new code.'; }
+  $('rdResetCode').addEventListener('click', async function(){
+    var r = RD.edit;
+    if (!(await uiConfirm(codeChangeWarning(r), { title:'Reset ' + r.firstName + '’s code?', ok:'Reset code', cancel:'Keep code', danger:true }))) return;
+    $('rdCode').value = newLocalCode();
+    saveRiderNow(true);
+  });
+  $('rcConfirmAll').addEventListener('input', function(){ $('rcResetAll').disabled = this.value.trim() !== 'RESET'; });
+  $('rcResetAll').addEventListener('click', function(){
+    var btn = this; btn.disabled = true; trMsg('rcResetResult', 'Resetting…'); $('rcNewCodes').innerHTML = '';
+    api('/api/riders', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ action:'resetCodes', ids:'all' }) }).then(function(res){
+      if (!res.ok){ btn.disabled = false; trMsg('rcResetResult', (res.data && res.data.error) || 'Could not reset.', true); return; }
+      $('rcConfirmAll').value = '';
+      var list = res.data.riders || [];
+      trMsg('rcResetResult', list.length + ' new code' + (list.length === 1 ? '' : 's') + '. Everyone is signed out; hand out the new codes:');
+      showNewCodes(list);
+      loadRiders();
+    }).catch(function(){ btn.disabled = false; trMsg('rcResetResult', 'No connection.', true); });
+  });
+  function showNewCodes(list){
+    var box = $('rcNewCodes'); box.innerHTML = '';
+    var wrap = el('div', 'newcodes'), t = el('table');
+    list.sort(function(a, b){ return (a.team + a.lastName + a.firstName).localeCompare(b.team + b.lastName + b.firstName); }).forEach(function(r){
+      var tr = el('tr'); tr.appendChild(el('td', null, r.firstName + ' ' + r.lastName)); tr.appendChild(el('td', null, r.team || '')); tr.appendChild(el('td', 'code', r.code)); t.appendChild(tr);
+    });
+    wrap.appendChild(t);
+    var btns = el('div', 'btns'), cp = el('button', 'ghost', 'Copy all'), pr = el('button', 'ghost', 'Print');
+    cp.type = pr.type = 'button';
+    var text = list.map(function(r){ return r.firstName + ' ' + r.lastName + (r.team ? ' (' + r.team + ')' : '') + ': ' + r.code; }).join('\n');
+    cp.addEventListener('click', function(){ if (navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ cp.textContent = 'Copied'; }); });
+    pr.addEventListener('click', function(){
+      var w = window.open('', '_blank'); if (!w) return;
+      w.document.write('<title>ROOT Ahead login codes</title><style>body{font:16px system-ui;padding:24px}td{padding:8px 16px;border-bottom:1px solid #ccc}td:last-child{font:20px monospace;letter-spacing:.15em}</style><h2>ROOT Ahead: login codes</h2><table>' +
+        list.map(function(r){ return '<tr><td>' + (r.firstName + ' ' + r.lastName).replace(/</g, '&lt;') + '</td><td>' + (r.team || '').replace(/</g, '&lt;') + '</td><td>' + r.code + '</td></tr>'; }).join('') + '</table>');
+      w.document.close(); w.print();
+    });
+    btns.appendChild(cp); btns.appendChild(pr); wrap.appendChild(btns); box.appendChild(wrap);
+  }
+
+  function setPermUI(on){
+    $('rvPerm').setAttribute('aria-checked', String(on));
+    $('rvPermTxt').textContent = on ? 'On: the rider can make or replace their own plan in the app.' : 'Off: only you make and change this rider’s plan.';
+  }
+  $('rvPerm').addEventListener('click', function(){
+    var on = this.getAttribute('aria-checked') !== 'true', u = TR.rider;
+    setPermUI(on);
+    api('/api/plan', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ deviceId: u.deviceId, canEdit: on }) })
+      .then(function(res){ if (!res.ok){ setPermUI(!on); trMsg('rvResult', (res.data && res.data.error) || 'Could not change this.', true); } else { if (TR.plans[u.deviceId]) TR.plans[u.deviceId].canEdit = on; } });
+  });
+  $('rvMake').addEventListener('click', function(){ openBuilder({ riders:[TR.rider.deviceId] }); });
+  $('rvCopy').addEventListener('click', function(){ openBuilder({ copyFrom: TR.rider.deviceId }); });
+
+  // ---------- WORKOUTS ----------
+  function profileInto(box, steps){
+    box.innerHTML = '';
+    steps.forEach(function(st){
+      var i = el('i'); i.style.flex = (st.min || 0.1) + ' 1 0'; i.style.background = TRAIN_ZONES[st.zone].color;
+      i.style.height = { Z1:22, Z2:40, Z3:56, SS:66, Z4:76, Z5:90, Z6:100 }[st.zone] + '%'; box.appendChild(i);
+    });
+  }
+  function renderWorkouts(){
+    var ul = $('woList'); ul.innerHTML = '';
+    if (!TR.lib.workouts.length){ ul.appendChild(el('li', 'empty-note', 'No own workouts yet. They appear in the workout list when you adjust a plan.')); return; }
+    TR.lib.workouts.forEach(function(w){
+      var li = el('li', 'rrow'); li.tabIndex = 0; li.setAttribute('role', 'button');
+      var main = el('div', 'rmain'); main.appendChild(el('b', null, w.title));
+      main.appendChild(el('span', 'rsub', trainHours(stepsMinutes(w.steps)) + ' · ' + w.steps.length + ' steps · ' + TRAIN_ZONES[topZone(w.steps)].name));
+      var pr = el('div', 'miniprofile'); profileInto(pr, w.steps); main.appendChild(pr);
+      li.appendChild(main);
+      li.addEventListener('click', function(){ editWorkout(w); });
+      li.addEventListener('keydown', function(e){ if (e.key === 'Enter') editWorkout(w); });
+      ul.appendChild(li);
+    });
+  }
+  function editWorkout(w){
+    TR.wo = w ? JSON.parse(JSON.stringify(w)) : { title:'', about:'', steps:[ { label:'Warm-up', min:15, zone:'Z2' }, { label:'Effort', min:10, zone:'SS' }, { label:'Cool-down', min:10, zone:'Z1' } ] };
+    $('woListBox').hidden = true; $('woEditor').hidden = false;
+    $('woTitle').value = TR.wo.title; $('woAbout').value = TR.wo.about || '';
+    $('woDelete').hidden = !TR.wo.id; trMsg('woResult', '');
+    renderWoSteps();
+  }
+  function renderWoSteps(){
+    var box = $('woSteps'); box.innerHTML = '';
+    TR.wo.steps.forEach(function(st, i){
+      var row = el('div', 'steprow');
+      var lab = el('input'); lab.type = 'text'; lab.maxLength = 60; lab.value = st.label; lab.setAttribute('aria-label', 'Step ' + (i + 1) + ' name');
+      lab.addEventListener('input', function(){ st.label = lab.value; });
+      var mn = el('input'); mn.type = 'number'; mn.min = 0.25; mn.max = 300; mn.step = 0.25; mn.value = st.min; mn.setAttribute('aria-label', 'Minutes');
+      mn.addEventListener('input', function(){ st.min = Math.max(0, +mn.value || 0); woTotals(); });
+      var zs = el('select'); zs.setAttribute('aria-label', 'Zone');
+      ZONE_ORDER.forEach(function(z){ var o = el('option', null, TRAIN_ZONES[z].name + ' (' + z + ')'); o.value = z; zs.appendChild(o); });
+      zs.value = st.zone; zs.addEventListener('change', function(){ st.zone = zs.value; woTotals(); });
+      var up = el('button', 'icon', '↑'); up.type = 'button'; up.title = 'Move up'; up.disabled = i === 0;
+      up.addEventListener('click', function(){ var a = TR.wo.steps; a.splice(i - 1, 0, a.splice(i, 1)[0]); renderWoSteps(); });
+      var rm = el('button', 'icon', '✕'); rm.type = 'button'; rm.title = 'Remove step';
+      rm.addEventListener('click', function(){ TR.wo.steps.splice(i, 1); renderWoSteps(); });
+      row.appendChild(lab); row.appendChild(mn); row.appendChild(zs); row.appendChild(up); row.appendChild(rm);
+      box.appendChild(row);
+    });
+    woTotals();
+  }
+  function woTotals(){
+    $('woTotal').textContent = 'Total ' + trainHours(stepsMinutes(TR.wo.steps));
+    profileInto($('woProfile'), TR.wo.steps);
+  }
+  $('woAdd').addEventListener('click', function(){ TR.wo.steps.push({ label:'Easy', min:5, zone:'Z1' }); renderWoSteps(); });
+  $('woRepeat').addEventListener('click', async function(){
+    // repeat an effort + recovery pair: handy for intervals
+    var f = await uiForm('Add intervals', [
+      { key:'n', label:'Repeats', value:4, type:'number', min:1, max:30 },
+      { key:'on', label:'Effort (minutes)', value:4, type:'number', step:'0.25', min:0.25 },
+      { key:'off', label:'Recovery (minutes)', value:3, type:'number', step:'0.25', min:0 },
+      { key:'z', label:'Effort zone', value:'Z5', options:[['Z3','Tempo (Z3)'],['SS','Sweet spot'],['Z4','Threshold (Z4)'],['Z5','VO2max (Z5)'],['Z6','Sprint (Z6)']] }
+    ], { ok:'Add', text:'Adds effort + recovery pairs before the cool-down.' });
+    if (!f) return;
+    var n = parseInt(f.n, 10), on = parseFloat(f.on), off = parseFloat(f.off), z = f.z;
+    if (!(n > 0 && on > 0 && off >= 0) || ZONE_ORDER.indexOf(z) === -1) return;
+    var cd = TR.wo.steps.length && /cool/i.test(TR.wo.steps[TR.wo.steps.length - 1].label) ? TR.wo.steps.pop() : null;
+    for (var i = 0; i < n; i++){ TR.wo.steps.push({ label:'Effort ' + (i + 1) + ' of ' + n, min:on, zone:z }); if (off && i < n - 1) TR.wo.steps.push({ label:'Recovery', min:off, zone:'Z1' }); }
+    if (cd) TR.wo.steps.push(cd);
+    renderWoSteps();
+  });
+  $('woSave').addEventListener('click', async function(){
+    TR.wo.title = $('woTitle').value.trim(); TR.wo.about = $('woAbout').value.trim();
+    if (!TR.wo.title){ trMsg('woResult', 'Give the workout a name.', true); return; }
+    if (!TR.wo.steps.length){ trMsg('woResult', 'Add at least one step.', true); return; }
+    var propagate = !!TR.wo.id && (await uiConfirm('Riders’ plans (today and later) and your templates that use this workout can get the new version too.', { title:'Update plans too?', ok:'Update them', cancel:'Only new plans', danger:false }));
+    api('/api/coach-library', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ kind:'workout', item: TR.wo, propagate: propagate }) })
+      .then(function(res){
+        if (!res.ok){ trMsg('woResult', (res.data && res.data.error) || 'Could not save.', true); return; }
+        TR.wo = res.data.item; $('woDelete').hidden = false;
+        var u = res.data.updated || {};
+        loadTrainingQuiet();
+        trMsg('woResult', 'Saved.' + (propagate ? ' Updated in ' + (u.plans || 0) + ' rider plan' + (u.plans === 1 ? '' : 's') + ' and ' + (u.templates || 0) + ' template' + (u.templates === 1 ? '' : 's') + '.' : ' It is in the workout list of every plan.'));
+      }).catch(function(){ trMsg('woResult', 'No connection. Not saved.', true); });
+  });
+  $('woDelete').addEventListener('click', async function(){
+    if (!TR.wo.id || !(await uiConfirm('Delete “' + TR.wo.title + '”? Plans that already use it keep their copy.'))) return;
+    deleteLibrary('workout', TR.wo.id, 'woResult').then(function(ok){ if (ok) showSub('workouts'); });
+  });
+  $('woBack').addEventListener('click', function(){ showSub('workouts'); });
+  $('woNew').addEventListener('click', function(){ editWorkout(null); });
+
+  // ---------- PLAN TEMPLATES ----------
+  function renderTemplates(){
+    var ul = $('tplList'); ul.innerHTML = '';
+    if (!TR.lib.templates.length){ ul.appendChild(el('li', 'empty-note', 'No templates yet. Make one here, or open a rider and use “Save as template”.')); return; }
+    TR.lib.templates.forEach(function(t){
+      var mins = 0; t.weeks.forEach(function(w){ w.days.forEach(function(d){ if (d.type !== 'rest') mins += d.min || 0; }); });
+      var li = el('li', 'rrow'); li.tabIndex = 0; li.setAttribute('role', 'button');
+      var main = el('div', 'rmain'); main.appendChild(el('b', null, t.name));
+      main.appendChild(el('span', 'rsub', t.weeks.length + ' week' + (t.weeks.length === 1 ? '' : 's') + ' · about ' + trainHours(Math.round(mins / t.weeks.length)) + ' a week' + (t.about ? ' · ' + t.about : '')));
+      li.appendChild(main);
+      li.addEventListener('click', function(){ editTemplate(t); });
+      li.addEventListener('keydown', function(e){ if (e.key === 'Enter') editTemplate(t); });
+      ul.appendChild(li);
+    });
+  }
+  function blankWeek(){ return { phase:'base', days:[0,1,2,3,4,5,6].map(function(){ return { type:'rest', min:0 }; }) }; }
+  function editTemplate(t){
+    TR.tpl = t ? JSON.parse(JSON.stringify(t)) : { name:'', about:'', weeks:[blankWeek()] };
+    TR.tplWeek = 0;
+    $('tplListBox').hidden = true; $('tplEditor').hidden = false;
+    $('tplName').value = TR.tpl.name; $('tplAbout').value = TR.tpl.about || '';
+    $('tplDelete').hidden = !TR.tpl.id; trMsg('tplResult', '');
+    var rs = $('tplRider'); rs.innerHTML = '';
+    TR.users.filter(function(u){ return u.firstName || u.lastName; }).sort(function(a, b){ return riderName(a).localeCompare(riderName(b)); })
+      .forEach(function(u){ var o = el('option', null, riderName(u) + (u.team ? ' · ' + u.team : '')); o.value = u.deviceId; rs.appendChild(o); });
+    $('tplStart').value = nextMonday();
+    renderTplWeek();
+  }
+  function renderTplWeek(){
+    var t = TR.tpl;
+    if (TR.tplWeek >= t.weeks.length) TR.tplWeek = t.weeks.length - 1;
+    var tplAll = function(){ var a = []; t.weeks.forEach(function(x){ a = a.concat(x.days); }); return a; };
+    if (isWide()){
+      planGrid($('tplWeek'), t.weeks, { canResize:true, redraw: renderTplWeek, onChange: function(){ $('tplTotals').textContent = planTotalsText(tplAll(), t.weeks.length); } });
+      $('tplTotals').textContent = planTotalsText(tplAll(), t.weeks.length); return;
+    }
+    $('tplTotals').textContent = planTotalsText(tplAll(), t.weeks.length);
+    var w = TR.tplWeek, wk = t.weeks[w];
+    var mins = wk.days.reduce(function(a, d){ return a + (d.type === 'rest' ? 0 : d.min || 0); }, 0);
+    $('tplWeekLabel').textContent = 'Week ' + (w + 1) + ' of ' + t.weeks.length + ' · ' + weekTotalsText(wk.days);
+    $('tplPrev').disabled = w === 0; $('tplNext').disabled = w >= t.weeks.length - 1;
+    $('tplPhase').value = wk.phase || 'base';
+    var box = $('tplWeek'); box.innerHTML = '';
+    wk.days.forEach(function(day, i){ box.appendChild(dayRow(day, TRAIN_DAYS[i], renderTplWeek, null, function(){ var m = TR.tpl.weeks[TR.tplWeek];
+      $('tplWeekLabel').textContent = 'Week ' + (TR.tplWeek + 1) + ' of ' + TR.tpl.weeks.length + ' · ' + weekTotalsText(m.days); })); });
+    $('tplRemoveWeek').disabled = t.weeks.length <= 1;
+  }
+  $('tplPhase').addEventListener('change', function(){ TR.tpl.weeks[TR.tplWeek].phase = this.value; });
+  $('tplPrev').addEventListener('click', function(){ TR.tplWeek--; renderTplWeek(); });
+  $('tplNext').addEventListener('click', function(){ TR.tplWeek++; renderTplWeek(); });
+  $('tplAddWeek').addEventListener('click', function(){
+    if (TR.tpl.weeks.length >= 16){ trMsg('tplResult', 'A template can have up to 16 weeks.', true); return; }
+    TR.tpl.weeks.splice(TR.tplWeek + 1, 0, JSON.parse(JSON.stringify(TR.tpl.weeks[TR.tplWeek])));   // copy this week as a start
+    TR.tplWeek++; renderTplWeek();
+  });
+  $('tplRemoveWeek').addEventListener('click', async function(){
+    if (TR.tpl.weeks.length <= 1 || !(await uiConfirm('Remove week ' + (TR.tplWeek + 1) + '?'))) return;
+    TR.tpl.weeks.splice(TR.tplWeek, 1); TR.tplWeek = Math.max(0, TR.tplWeek - 1); renderTplWeek();
+  });
+  function tplSave(){
+    TR.tpl.name = $('tplName').value.trim(); TR.tpl.about = $('tplAbout').value.trim();
+    if (!TR.tpl.name){ trMsg('tplResult', 'Give the template a name.', true); return Promise.resolve(null); }
+    return saveLibrary('template', TR.tpl, 'tplResult').then(function(item){ if (item){ TR.tpl = item; $('tplDelete').hidden = false; } return item; });
+  }
+  $('tplSave').addEventListener('click', tplSave);
+  $('tplDelete').addEventListener('click', async function(){
+    if (!TR.tpl.id || !(await uiConfirm('Delete template “' + TR.tpl.name + '”? Riders who got it keep their plan.'))) return;
+    deleteLibrary('template', TR.tpl.id, 'tplResult').then(function(ok){ if (ok) showSub('templates'); });
+  });
+  $('tplBack').addEventListener('click', function(){ showSub('templates'); });
+  $('tplNew').addEventListener('click', function(){ editTemplate(null); });
+  $('tplAssign').addEventListener('click', function(){
+    var id = $('tplRider').value, u = TR.users.filter(function(x){ return x.deviceId === id; })[0];
+    if (!u){ trMsg('tplAssignResult', 'Pick a rider.', true); return; }
+    var start = $('tplStart').value || nextMonday(), btn = this;
+    tplSave().then(async function(t){
+      if (!t) return;
+      var has = TR.plans[id] && !TR.plans[id].ended;
+      if (has && !(await uiConfirm('Replace ' + riderName(u) + '’s current plan with “' + t.name + '” from ' + start + '? Their current plan is kept in their history.'))) return;
+      btn.disabled = true;
+      api('/api/plan?deviceId=' + encodeURIComponent(id)).then(function(res){
+        var existing = res.ok ? res.data.plan : null;
+        return savePlanFor(id, planFromTemplate(t, start, existing), true, 'tplAssignResult');
+      }).then(function(p){ btn.disabled = false; if (p){ loadTrainingQuiet(); trMsg('tplAssignResult', '“' + t.name + '” is now ' + riderName(u) + '’s plan, starting ' + start + '.'); } })
+        .catch(function(){ btn.disabled = false; });
+    });
+  });
+
+  // start: unlocked if this phone remembers the password
+  try{ key = localStorage.getItem(KEY_STORE) || ''; }catch(x){}
+  if (key) showApp(); else showLock();
+  update();
+})();
+</script>
+</body>
+</html>
